@@ -5,6 +5,9 @@ on:
     paths:
       - 'dbms/**'
       - '.github/workflows/verify-dbms.yml'
+  push:
+    branches:
+      - feature/dbms-schema-and-er
 
 jobs:
   verify-schema:
