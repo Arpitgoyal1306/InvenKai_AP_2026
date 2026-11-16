@@ -1,0 +1,41 @@
+name: Verify PostgreSQL Schema
+
+on:
+  pull_request:
+    paths:
+      - 'dbms/**'
+      - '.github/workflows/verify-dbms.yml'
+
+jobs:
+  verify-schema:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: invenkai_cp2_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run 03_schema.sql and verification checks
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: password
+          PGDATABASE: invenkai_cp2_test
+        run: |
+          psql -v ON_ERROR_STOP=1 -f dbms/03_schema.sql
+          psql -c "\dt"
+          psql -c "SELECT count(*) AS foreign_key_count FROM pg_constraint WHERE contype = 'f' AND connamespace = 'public'::regnamespace;"
+          psql -c "SELECT trigger_name, event_manipulation, event_object_table FROM information_schema.triggers WHERE trigger_schema = 'public';"
+          psql -c "SELECT column_name, is_generated FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'order_items' AND column_name = 'line_total';"
