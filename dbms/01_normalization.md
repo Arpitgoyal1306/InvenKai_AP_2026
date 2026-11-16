@@ -360,3 +360,27 @@ This analysis is based on these files in the InvenKai application repository:
 - `backend/migrations/1793999172515_update-inactive-supplier-trigger.js`
 - `backend/migrations/1794030177261_add-low-stock-threshold-to-products.js`
 - `backend/migrations/1794100000000_create-orders.js`
+
+### 10. `order_outbox`
+- **Attributes:** `id`, `event_type`, `order_id`, `payload`, `status`, `attempts`, `available_at`, `locked_until`, `claim_token`, `last_error`, `dispatched_at`, `created_at`, `updated_at`
+- **Primary Key:** `id`
+- **Candidate Keys:** `{id}`, `{event_type, order_id}` (enforced via `UNIQUE (event_type, order_id)`)
+- **Foreign Keys:**
+  - `order_id` $\rightarrow$ `orders(id)` (`ON DELETE CASCADE`, mandatory)
+- **Functional Dependencies:**
+  - `id` $\rightarrow$ `event_type, order_id, payload, status, attempts, available_at, locked_until, claim_token, last_error, dispatched_at, created_at, updated_at`
+  - `{event_type, order_id}` $\rightarrow$ `id, payload, status, attempts, available_at, locked_until, claim_token, last_error, dispatched_at, created_at, updated_at`
+- **Normal Form Analysis (BCNF / 3NF):** Every non-trivial functional dependency has a superkey (`id` or `{event_type, order_id}`) on the left-hand side, and all attributes are atomic (with `payload` stored as a structured `JSONB` event document). Therefore, `order_outbox` satisfies **BCNF**.
+
+### 11. `receipts`
+- **Attributes:** `id`, `order_id`, `receipt_number`, `user_id`, `total_amount`, `items`, `issued_at`
+- **Primary Key:** `id`
+- **Candidate Keys:** `{id}`, `{order_id}` (`UNIQUE`), `{receipt_number}` (`UNIQUE`)
+- **Foreign Keys:**
+  - `order_id` $\rightarrow$ `orders(id)` (`ON DELETE RESTRICT`, mandatory, 1-to-0..1 with `orders`)
+  - `user_id` $\rightarrow$ `users(id)` (`ON DELETE RESTRICT`, mandatory)
+- **Functional Dependencies:**
+  - `id` $\rightarrow$ `order_id, receipt_number, user_id, total_amount, items, issued_at`
+  - `order_id` $\rightarrow$ `id, receipt_number, user_id, total_amount, items, issued_at`
+  - `receipt_number` $\rightarrow$ `id, order_id, user_id, total_amount, items, issued_at`
+- **Normal Form Analysis (BCNF / 3NF):** All candidate keys (`id`, `order_id`, `receipt_number`) uniquely determine all remaining attributes, with no partial or transitive dependencies between non-prime attributes (`items` and `total_amount` capture an immutable point-in-time snapshot of the issued receipt rather than live product prices). Therefore, `receipts` satisfies **BCNF**.
