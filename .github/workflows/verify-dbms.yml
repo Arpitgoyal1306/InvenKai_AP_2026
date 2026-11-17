@@ -36,19 +36,64 @@ jobs:
       - name: Show PostgreSQL version
         run: psql -v ON_ERROR_STOP=1 -c "SELECT version();"
 
-      - name: Create schema from 03_schema.sql (fresh database, stop on first error)
+      - name: Create schema from dbms/03_schema.sql (fresh database, stop on first error)
         run: psql -v ON_ERROR_STOP=1 -f dbms/03_schema.sql
 
       - name: Assert schema expectations (fails the job on any mismatch)
         run: psql -v ON_ERROR_STOP=1 -f dbms/04_verify_assertions.sql
 
-      # Proves the assertions are not vacuous: break the schema on purpose and
-      # require the assertion script to fail.
-      - name: Self-test - assertions must fail on a broken schema
+      # Each self-test deliberately breaks the schema inside a transaction,
+      # runs the assertion script, and requires that it FAILS with the
+      # assertion error ("Schema verification FAILED"), not with a connection
+      # or unrelated SQL error. psql exits on the first error, so the open
+      # transaction is discarded and the next self-test starts from the
+      # clean schema.
+      - name: Self-test - assertions must fail on deliberately broken schemas
         run: |
-          psql -v ON_ERROR_STOP=1 -c "DROP INDEX idx_order_outbox_pending;"
-          if psql -v ON_ERROR_STOP=1 -f dbms/04_verify_assertions.sql; then
-            echo "::error::Assertions passed on a deliberately broken schema"
-            exit 1
-          fi
-          echo "Assertions correctly failed on the broken schema."
+          negative() {
+            local name="$1"
+            local mutation="$2"
+            echo "::group::Self-test: ${name}"
+            set +e
+            out=$(psql -v ON_ERROR_STOP=1 2>&1 <<SQL
+          BEGIN;
+          ${mutation}
+          \i dbms/04_verify_assertions.sql
+          ROLLBACK;
+          SQL
+          )
+            rc=$?
+            set -e
+            echo "${out}"
+            echo "::endgroup::"
+            if [ "${rc}" -eq 0 ]; then
+              echo "::error::Self-test '${name}': assertions PASSED on a deliberately broken schema"
+              exit 1
+            fi
+            if ! grep -q "Schema verification FAILED" <<<"${out}"; then
+              echo "::error::Self-test '${name}': failed for a reason other than the assertion error"
+              exit 1
+            fi
+            echo "Self-test '${name}': assertions correctly failed."
+          }
+
+          negative "dropped partial index" \
+            "DROP INDEX idx_order_outbox_pending;"
+
+          negative "partial index with unrelated predicate" \
+            "DROP INDEX idx_order_outbox_pending; CREATE INDEX idx_order_outbox_pending ON order_outbox (status, available_at, id) WHERE status <> 'pending';"
+
+          negative "weakened CHECK with the same name" \
+            "ALTER TABLE orders DROP CONSTRAINT orders_total_amount_nonnegative; ALTER TABLE orders ADD CONSTRAINT orders_total_amount_nonnegative CHECK (total_amount >= -1);"
+
+          negative "disabled trigger" \
+            "ALTER TABLE supplier_products DISABLE TRIGGER prevent_inactive_supplier_association;"
+
+          negative "wrong generated-column expression" \
+            "ALTER TABLE order_items DROP COLUMN line_total; ALTER TABLE order_items ADD COLUMN line_total NUMERIC(20,2) GENERATED ALWAYS AS (unit_price + quantity) STORED;"
+
+          negative "unexpected extra column" \
+            "ALTER TABLE users ADD COLUMN extra_col TEXT;"
+
+          negative "changed column type" \
+            "ALTER TABLE products ALTER COLUMN price TYPE NUMERIC(12,2);"
