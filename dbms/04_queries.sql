@@ -186,9 +186,9 @@ VALUES ($1, $2, $3, $4, $5, $6);
 -- ID: R8
 -- Purpose: Retrieve inventory transaction history, optionally filtered by product.
 -- Tables: inventory_transactions
--- Dynamic query: the application adds
--- WHERE product_id = $1 when productId is provided.
--- The LIMIT and OFFSET placeholders are numbered after any optional productId.
+-- Dynamic query: the backend emits one of these two parameterized forms.
+--
+-- Variant A: productId is not provided.
 SELECT
     id,
     product_id,
@@ -199,10 +199,27 @@ SELECT
     quantity_after,
     created_at
 FROM inventory_transactions
--- Optional WHERE product_id = $1
 ORDER BY created_at DESC, id DESC
 LIMIT $1
 OFFSET $2;
+--
+-- Variant B: productId is provided.
+-- The actual backend query adds WHERE product_id = $1 and shifts
+-- the pagination placeholders to $2 and $3.
+SELECT
+    id,
+    product_id,
+    performed_by,
+    transaction_type,
+    quantity,
+    quantity_before,
+    quantity_after,
+    created_at
+FROM inventory_transactions
+WHERE product_id = $1
+ORDER BY created_at DESC, id DESC
+LIMIT $2
+OFFSET $3;
 
 
 -- ============================================================
