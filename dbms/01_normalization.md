@@ -2,7 +2,7 @@
 
 ## 1. Introduction and scope
 
-This document analyzes the PostgreSQL schema defined by the InvenKai application's migrations. It covers the nine current relations: `users`, `categories`, `products`, `inventory`, `inventory_transactions`, `suppliers`, `supplier_products`, `orders`, and `order_items`.
+This document analyzes the PostgreSQL schema defined by the InvenKai application's migrations. It covers all eleven current relations: `users`, `categories`, `products`, `inventory`, `inventory_transactions`, `suppliers`, `supplier_products`, `orders`, `order_items`, `order_outbox`, and `receipts`.
 
 The walkthrough distinguishes between:
 
@@ -119,13 +119,44 @@ In the lists below, `id`-based and unique-key dependencies include all the other
   - `id → order_id, product_id, product_name, sku, unit_price, quantity, line_total`
   - `(order_id, product_id) → id, product_name, sku, unit_price, quantity, line_total`
 - Foreign keys: `order_id → orders.id`; `product_id → products.id`.
-- Ordinary stored facts: `order_id`, `product_id`, `product_name`, `sku`, `unit_price`, and `quantity`. `product_name`, `sku`, and `unit_price` are intentional order-time snapshots. They describe what was recorded for that particular order line; they are not assumed to equal the current product values forever.
+- Ordinary stored facts: `order_id`, `product_id`, `product_name`, `sku` (nullable `VARCHAR(100)`), `unit_price`, and `quantity`. `product_name`, `sku`, and `unit_price` are intentional order-time snapshots. They describe what was recorded for that particular order line; they are not assumed to equal the current product values forever.
 - Generated attribute: `line_total` is a **stored generated column** defined as `unit_price * quantity`. Thus the row also has the calculated dependency `(unit_price, quantity) → line_total`.
 - Checks: `quantity > 0` and `unit_price >= 0`.
 
-### 2.10 Declared candidate keys versus business assumptions
+### 2.10 `order_outbox`
 
-A candidate key must be supported by a uniqueness rule in the schema (or be explicitly established as a business rule for the relation being analyzed). The migrations declare uniqueness for `users.email`, `categories.name`, `products.sku`, `inventory.product_id`, and `order_items(order_id, product_id)`, in addition to each table's primary key. They do **not** declare supplier email or phone unique. This document does not assume uniqueness merely because an attribute may commonly be unique in a business setting.
+**Relation:** `order_outbox(id, event_type, order_id, payload, status, attempts, available_at, locked_until, claim_token, last_error, dispatched_at, created_at, updated_at)`
+
+- Primary key / candidate key: `{id}`.
+- Declared alternate candidate key: `{event_type, order_id}` (`UNIQUE (event_type, order_id)` via `order_outbox_unique_event_per_order`, where both `event_type` and `order_id` are `NOT NULL`).
+- FDs from both candidate keys:
+  - `id → event_type, order_id, payload, status, attempts, available_at, locked_until, claim_token, last_error, dispatched_at, created_at, updated_at`
+  - `(event_type, order_id) → id, payload, status, attempts, available_at, locked_until, claim_token, last_error, dispatched_at, created_at, updated_at`
+- Foreign key: `order_id → orders.id` (`ON DELETE CASCADE`).
+- Checks: `status IN ('pending', 'processing', 'dispatched')` and `attempts >= 0`.
+- `payload` (`JSONB NOT NULL`) stores the serialized outbox event payload as an application-level message document.
+
+### 2.11 `receipts`
+
+**Relation:** `receipts(id, order_id, receipt_number, user_id, total_amount, items, issued_at)`
+
+- Primary key / candidate key: `{id}`.
+- Declared alternate candidate keys:
+  - `{order_id}` (`UNIQUE NOT NULL`)
+  - `{receipt_number}` (`UNIQUE NOT NULL`)
+- FDs from all three candidate keys:
+  - `id → order_id, receipt_number, user_id, total_amount, items, issued_at`
+  - `order_id → id, receipt_number, user_id, total_amount, items, issued_at`
+  - `receipt_number → id, order_id, user_id, total_amount, items, issued_at`
+- Foreign keys:
+  - `order_id → orders.id` (`ON DELETE RESTRICT`)
+  - `user_id → users.id` (`ON DELETE RESTRICT`)
+- Checks: `total_amount >= 0` and `jsonb_typeof(items) = 'array'`.
+- `total_amount` and `items` (`JSONB NOT NULL`) are intentional point-in-time receipt snapshots captured when the receipt is issued.
+
+### 2.12 Declared candidate keys versus business assumptions
+
+A candidate key must be supported by a uniqueness rule in the schema (or be explicitly established as a business rule for the relation being analyzed). The migrations declare uniqueness for `users.email`, `categories.name`, `products.sku`, `inventory.product_id`, `order_items(order_id, product_id)`, `order_outbox(event_type, order_id)`, `receipts.order_id`, and `receipts.receipt_number`, in addition to each table's primary key. They do **not** declare supplier email or phone unique. This document does not assume uniqueness merely because an attribute may commonly be unique in a business setting.
 
 Foreign-key relationships and check constraints enforce referential or value rules; they do not automatically create candidate keys.
 
@@ -135,14 +166,16 @@ A relation is in 1NF when every attribute value is atomic for the intended use o
 
 ### 3.1 Actual InvenKai relations
 
-The nine migrated relations use individual columns for their values. For example:
+The eleven migrated relations use individual columns for their values. For example:
 
 - `orders` has one `id`, one `user_id`, one `status`, and one `total_amount` per row.
 - Each product ordered is represented by a separate `order_items` row, not by a list of product IDs in an `orders` cell.
 - Each supplier–product association is represented by one `supplier_products` row.
 - `inventory_transactions` represents each stock movement as its own row.
+- `order_outbox` stores `payload` (`JSONB`) as an opaque, atomic application-level event document per `(event_type, order_id)` outbox row; PostgreSQL treats the JSONB value as a single column value rather than a relational repeating group.
+- `receipts` stores `items` (`JSONB`) constrained to a JSON array (`jsonb_typeof(items) = 'array'`). At the PostgreSQL physical level, `items` is stored as a single atomic JSONB value; conceptually, however, embedding an array of line items inside one column is an **intentional snapshot denormalization** so that issued receipts remain immutable and self-contained even if catalog or order-line details are later archived.
 
-Therefore, the actual relations are structured to satisfy 1NF: their repeating business details are represented as rows in related relations rather than as repeating groups in a single cell.
+Therefore, the core transactional relations satisfy 1NF through row-based decomposition, `order_outbox.payload` is treated as an atomic JSONB event value, and `receipts.items` is an intentional JSONB array snapshot (strictly non-atomic if decomposed conceptually into item attributes, but atomic as a single immutable JSONB document at the application-snapshot level).
 
 ### 3.2 Illustrative alternative design (not the actual schema)
 
@@ -183,9 +216,9 @@ A relation is in 2NF when it is in 1NF and every non-prime attribute is fully de
 
 ### 4.1 Actual relations with single-attribute candidate keys
 
-The relations `users`, `categories`, `products`, `inventory`, `inventory_transactions`, `suppliers`, and `orders` have only single-attribute candidate keys in the migrations. Their non-key attributes depend on their respective row identifier (`id`), and a partial dependency on part of a single-attribute key is not possible.
+The relations `users`, `categories`, `products`, `inventory`, `inventory_transactions`, `suppliers`, `orders`, and `receipts` have only single-attribute candidate keys in the migrations. Their non-key attributes depend on their respective row identifier (`id`), and a partial dependency on part of a single-attribute key is not possible.
 
-`inventory` also has the declared alternate candidate key `product_id`, which is single-attribute. `users`, `categories`, and `products` similarly have single-attribute alternate candidate keys (`email`, `name`, and `sku`). These do not introduce a composite-key partial dependency.
+`inventory` also has the declared alternate candidate key `product_id`, which is single-attribute. `users`, `categories`, and `products` similarly have single-attribute alternate candidate keys (`email`, `name`, and `sku`), and `receipts` has single-attribute alternate candidate keys `order_id` and `receipt_number`. These do not introduce a composite-key partial dependency.
 
 ### 4.2 `supplier_products`
 
@@ -213,7 +246,15 @@ There is no declared FD `product_id → product_name, sku, unit_price` for the o
 
 The other candidate key, `id`, is a single attribute, so it cannot have a partial dependency. On the stated snapshot semantics, there is no partial dependency under the composite candidate key either. Thus, the ordinary order-line facts satisfy the 2NF test. The generated `line_total` has an additional derived FD that is treated separately below; it does not create a dependency on only `order_id` or only `product_id`.
 
-### 4.4 Illustrative 2NF decomposition (not the actual schema)
+### 4.4 `order_outbox`: both candidate keys
+
+`order_outbox` has two candidate keys: `id` and `(event_type, order_id)` (`UNIQUE (event_type, order_id)`).
+
+- `id` is a single-attribute key, so no partial dependency is possible on `id`.
+- For `(event_type, order_id)`, every non-key attribute (`payload`, `status`, `attempts`, `available_at`, `locked_until`, `claim_token`, `last_error`, `dispatched_at`, `created_at`, `updated_at`) describes the delivery state or payload of that specific event for that specific order. None of these attributes is determined by `event_type` alone or by `order_id` alone (an order may have multiple distinct `event_type` rows, each with its own status, attempts, and payload).
+- Therefore, `order_outbox` has no partial dependencies on either candidate key and satisfies 2NF.
+
+### 4.5 Illustrative 2NF decomposition (not the actual schema)
 
 Consider this hypothetical relation, designed only to demonstrate a partial dependency:
 
@@ -248,6 +289,8 @@ The actual schema already separates several entity descriptions from the relatio
 - `inventory` stores `product_id` and quantity; product name, SKU, and price are in `products`.
 - `supplier_products` stores only supplier/product identifiers; supplier details are in `suppliers`, and product details are in `products`.
 - `inventory_transactions` references products, users, and optionally orders by their identifiers rather than copying all of those entities' current descriptive columns.
+- `order_outbox` references `orders.id` and stores only outbox scheduling/delivery state and the serialized event `payload`, without repeating user or product descriptive columns as normalized relational attributes.
+- `receipts` references `orders.id` and `users.id`; its `total_amount` and `items` (`JSONB`) are intentional immutable point-in-time receipt snapshots rather than transitive dependencies on mutable `orders` or `products` attributes. Note that storing `user_id` directly on `receipts` alongside `order_id` duplicates the order's customer reference as an explicit receipt fact (enforced by FK to `users.id` rather than a cross-table constraint to `orders.user_id`), which is an intentional snapshot/audit convenience.
 
 For these relationships, the foreign key identifies a row in the referenced relation. The referenced table's primary key then determines its descriptive attributes. Those attributes are not repeated in the referencing relation, avoiding the corresponding transitive descriptive dependency there.
 
@@ -320,7 +363,7 @@ However, when every dependency implied by the actual physical schema is included
 
 BCNF requires the determinant of every non-trivial FD to be a superkey. It is stricter than 3NF.
 
-For the key-based FDs in the nine relations, the declared primary and alternate candidate keys are determinants and therefore superkeys. `supplier_products` has only its composite key and no non-key attributes. `suppliers.email` and `suppliers.phone` are not treated as determinants because the migrations do not declare them unique.
+For the key-based FDs in the eleven relations, the declared primary and alternate candidate keys are determinants and therefore superkeys. `supplier_products` has only its composite key and no non-key attributes. `order_outbox` and `receipts` have only candidate-key determinants (`id`, `(event_type, order_id)` for `order_outbox`; `id`, `order_id`, `receipt_number` for `receipts`) within their own row FDs. `suppliers.email` and `suppliers.phone` are not treated as determinants because the migrations do not declare them unique.
 
 The complete physical schema nevertheless has at least these non-key determinants:
 
@@ -335,16 +378,16 @@ Accordingly, the key-based entity structure is BCNF with respect to the key-base
 
 | Stage | Actual-schema analysis | Result |
 |---|---|---|
-| 1NF | The nine relations use atomic column values; repeating order lines and supplier/product associations are represented as rows. | The actual relations satisfy 1NF. |
-| 2NF | Single-column candidate keys cannot have partial dependencies; `supplier_products` has no non-key attributes; `order_items` is checked under both `id` and `(order_id, product_id)`, with snapshots depending on the full order-line key. | Ordinary stored facts satisfy the 2NF test; the generated `line_total` is separately identified as derived. |
-| 3NF | Entity descriptions are separated into their own relations. The physical FDs for generated `line_total` and check-constrained `quantity_after` have non-superkey determinants and non-prime dependents. | Core entity facts are decomposed appropriately, but the complete physical `order_items` and `inventory_transactions` relations are not strictly 3NF when those derived dependencies are included. |
-| BCNF (optional) | Key-based FDs have candidate-key determinants. The two calculated dependencies have non-superkey determinants. | The full physical `order_items` and `inventory_transactions` relations are not BCNF under the stated FDs. |
+| 1NF | Ten relations use scalar/atomic column values, and `order_outbox.payload` is treated as an atomic JSONB event document. `receipts.items` is a `JSONB` array (atomic as a PostgreSQL column, but an intentional snapshot denormalization of line items). | Core relations satisfy 1NF; `receipts.items` is an intentional JSONB array snapshot. |
+| 2NF | Single-column candidate keys (`users`, `categories`, `products`, `inventory`, `inventory_transactions`, `suppliers`, `orders`, `receipts`) cannot have partial dependencies; `supplier_products` has no non-key attributes; `order_items` (`id`, `(order_id, product_id)`) and `order_outbox` (`id`, `(event_type, order_id)`) depend on their full composite keys. | Ordinary stored facts satisfy the 2NF test; the generated `line_total` is separately identified as derived. |
+| 3NF | Entity descriptions are separated into their own relations. The physical FDs for generated `line_total` and check-constrained `quantity_after` have non-superkey determinants and non-prime dependents. `receipts` snapshots (`total_amount`, `items`, `user_id`) are intentional point-in-time records. | Core entity facts are decomposed appropriately, but the complete physical `order_items` and `inventory_transactions` relations are not strictly 3NF when those derived dependencies are included. |
+| BCNF (optional) | Key-based FDs across all eleven relations have candidate-key determinants. The two calculated dependencies have non-superkey determinants. | `order_outbox` and `receipts` satisfy BCNF wrt their within-row key FDs (modulo `receipts.items` snapshot semantics); `order_items` and `inventory_transactions` are not BCNF under the stated derived FDs. |
 
 ## 8. Conclusion
 
-The InvenKai migrations define nine related tables and use primary keys, declared unique constraints, foreign keys, and check constraints to protect data integrity. The 1NF walkthrough shows how atomic values and separate rows represent repeating order lines. The 2NF analysis checks every composite candidate key, including both candidate keys in `order_items`, and distinguishes order-time snapshots from current product attributes. The 3NF walkthrough demonstrates how separating users, categories, products, and suppliers prevents repeated descriptive information.
+The InvenKai migrations define eleven related tables and use primary keys, declared unique constraints, foreign keys, and check constraints to protect data integrity. The 1NF walkthrough shows how atomic values and separate rows represent repeating order lines, while `order_outbox.payload` and `receipts.items` use `JSONB` for event payloads and immutable receipt snapshots. The 2NF analysis checks every composite candidate key, including both candidate keys in `order_items` and `order_outbox`, and distinguishes order-time snapshots from current product attributes. The 3NF walkthrough demonstrates how separating users, categories, products, and suppliers prevents repeated descriptive information.
 
-The formal analysis also identifies two physical-schema qualifications: the generated `order_items.line_total` and the check-constrained `inventory_transactions.quantity_after` each have a non-superkey determinant. Consequently, it would be inaccurate to claim that every physical relation strictly satisfies 3NF or BCNF without excluding those derived dependencies. `orders.total_amount` is a stored order-level aggregate whose synchronization is not implemented by a trigger in the migrations reviewed.
+The formal analysis also identifies two physical-schema qualifications: the generated `order_items.line_total` and the check-constrained `inventory_transactions.quantity_after` each have a non-superkey determinant. Consequently, it would be inaccurate to claim that every physical relation strictly satisfies 3NF or BCNF without excluding those derived dependencies. `orders.total_amount` is a stored order-level aggregate whose synchronization is not implemented by a trigger in the migrations reviewed, and `receipts.items` is an intentional JSONB snapshot denormalization.
 
 ## 9. Migration source files
 
@@ -360,3 +403,4 @@ This analysis is based on these files in the InvenKai application repository:
 - `backend/migrations/1793999172515_update-inactive-supplier-trigger.js`
 - `backend/migrations/1794030177261_add-low-stock-threshold-to-products.js`
 - `backend/migrations/1794100000000_create-orders.js`
+- `backend/migrations/1794200000000_create-order-outbox-and-receipts.js`

@@ -4,6 +4,8 @@
 -- Source: InvenKai application migrations
 -- ============================================================
 
+BEGIN;
+
 -- 1. Categories
 CREATE TABLE categories (
     id BIGSERIAL PRIMARY KEY,
@@ -34,7 +36,7 @@ CREATE TABLE suppliers (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT suppliers_name_not_blank
+    CONSTRAINT suppliers_name_not_empty
         CHECK (BTRIM(name) <> ''),
 
     CONSTRAINT suppliers_contact_required
@@ -62,7 +64,7 @@ CREATE TABLE products (
         REFERENCES categories(id)
         ON DELETE RESTRICT,
 
-    CONSTRAINT products_low_stock_threshold_check
+    CONSTRAINT products_low_stock_threshold_non_negative
         CHECK (
             low_stock_threshold IS NULL
             OR low_stock_threshold >= 0
@@ -108,7 +110,7 @@ CREATE TABLE orders (
             'cancelled'
         )),
 
-    CONSTRAINT orders_total_amount_check
+    CONSTRAINT orders_total_amount_nonnegative
         CHECK (total_amount >= 0)
 );
 
@@ -134,7 +136,7 @@ CREATE TABLE inventory_transactions (
         REFERENCES users(id)
         ON DELETE SET NULL,
 
-    CONSTRAINT inventory_transactions_order_fk
+    CONSTRAINT fk_inventory_transactions_order
         FOREIGN KEY (order_id)
         REFERENCES orders(id)
         ON DELETE RESTRICT,
@@ -166,7 +168,7 @@ CREATE TABLE inventory_transactions (
             )
         ),
 
-    CONSTRAINT inventory_transactions_order_type_check
+    CONSTRAINT inventory_order_decrease_only
         CHECK (
             order_id IS NULL
             OR transaction_type = 'decrease'
@@ -215,13 +217,13 @@ CREATE TABLE order_items (
         REFERENCES products(id)
         ON DELETE RESTRICT,
 
-    CONSTRAINT order_items_quantity_check
+    CONSTRAINT order_items_quantity_positive
         CHECK (quantity > 0),
 
-    CONSTRAINT order_items_unit_price_check
+    CONSTRAINT order_items_price_nonnegative
         CHECK (unit_price >= 0),
 
-    CONSTRAINT order_items_order_product_unique
+    CONSTRAINT order_items_unique_product
         UNIQUE (order_id, product_id)
 );
 
@@ -249,10 +251,10 @@ CREATE TABLE order_outbox (
     CONSTRAINT order_outbox_status_check
         CHECK (status IN ('pending', 'processing', 'dispatched')),
 
-    CONSTRAINT order_outbox_attempts_check
+    CONSTRAINT order_outbox_attempts_nonnegative
         CHECK (attempts >= 0),
 
-    CONSTRAINT order_outbox_event_order_unique
+    CONSTRAINT order_outbox_unique_event_per_order
         UNIQUE (event_type, order_id)
 );
 
@@ -276,7 +278,7 @@ CREATE TABLE receipts (
         REFERENCES users(id)
         ON DELETE RESTRICT,
 
-    CONSTRAINT receipts_total_amount_check
+    CONSTRAINT receipts_total_nonnegative
         CHECK (total_amount >= 0),
 
     CONSTRAINT receipts_items_array_check
@@ -296,7 +298,7 @@ CREATE INDEX idx_inventory_transactions_order
 CREATE INDEX idx_orders_user_created
     ON orders (user_id, created_at);
 
-CREATE INDEX idx_supplier_products_product
+CREATE INDEX supplier_products_product_id_idx
     ON supplier_products (product_id);
 
 CREATE INDEX idx_order_items_product
@@ -309,10 +311,6 @@ CREATE INDEX idx_order_outbox_pending
 CREATE INDEX idx_order_outbox_expired_leases
     ON order_outbox (locked_until)
     WHERE status = 'processing';
-
--- ============================================================
--- End of InvenKai schema
--- ============================================================
 
 -- ============================================================
 -- Supplier validation trigger
@@ -352,3 +350,9 @@ BEFORE INSERT OR UPDATE OF supplier_id, product_id
 ON supplier_products
 FOR EACH ROW
 EXECUTE FUNCTION check_supplier_is_active();
+
+COMMIT;
+
+-- ============================================================
+-- End of InvenKai schema
+-- ============================================================
