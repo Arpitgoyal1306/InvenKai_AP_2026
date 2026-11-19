@@ -817,3 +817,16 @@ SELECT NOW();
 -- Each selected column is defined by inventory_transactions in
 -- dbms/03_schema.sql. The focused service test checks the filtered
 -- query's generated SQL and ordered values.
+
+-- ============================================================
+-- CP3 AUDIT PATCH 3: R19 APPLICATION TRACE
+-- ============================================================
+-- R19 is implemented by getCategoryStock in
+-- InvenKai/backend/src/services/reports.service.js.
+-- The GET /category-stock route in
+-- InvenKai/backend/src/routes/reports.routes.js passes the optional
+-- categoryId to the service. The focused tests are in
+-- InvenKai/backend/test/reports.service.test.js.
+--
+-- The application path is route -> report service -> parameterized
+-- category-stock aggregation query.
