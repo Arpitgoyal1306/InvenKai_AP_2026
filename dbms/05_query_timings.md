@@ -1,8 +1,8 @@
 # CP4 Query Timings
 
-**Project:** InvenKai  
-**Database:** PostgreSQL  
-**Query source:** `dbms/04_queries.sql`  
+**Project:** InvenKai
+**Database:** PostgreSQL
+**Query source:** `dbms/04_queries.sql`
 **Measurement status:** Pending local execution. No timings or scan types have been fabricated.
 
 ## Method
