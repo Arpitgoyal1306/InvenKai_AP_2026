@@ -830,3 +830,18 @@ SELECT NOW();
 --
 -- The application path is route -> report service -> parameterized
 -- category-stock aggregation query.
+
+-- ============================================================
+-- CP3 AUDIT PATCH 4: R19 SCHEMA AND PARAMETER CHECK
+-- ============================================================
+-- Without categoryId, the service emits no WHERE clause and binds [].
+-- With categoryId, it validates/parses the value, adds
+-- WHERE c.id = $1, and binds [parsedCategoryId].
+--
+-- The schema defines categories(id, name), products.category_id
+-- referencing categories, and inventory.product_id referencing
+-- products. The R19 joins therefore use defined relationship columns.
+-- GROUP BY c.id, c.name matches the selected category attributes.
+-- COUNT(DISTINCT p.id) and COUNT(DISTINCT i.product_id) count
+-- products rather than rows multiplied by the joins.
+-- The focused tests cover filtered, unfiltered, and invalid IDs.
