@@ -788,3 +788,18 @@ SELECT NOW();
 --      The rest of the aggregation query remains unchanged.
 --
 -- ============================================================
+
+
+-- ============================================================
+-- CP3 AUDIT PATCH 1: R8 APPLICATION TRACE
+-- ============================================================
+-- R8 is implemented by getInventoryTransactions in
+-- InvenKai/backend/src/services/inventory.service.js.
+-- The GET /history route in
+-- InvenKai/backend/src/routes/inventory.routes.js validates the
+-- optional productId and pagination inputs before invoking it.
+-- The focused test is
+-- InvenKai/backend/test/inventory.service.test.js.
+--
+-- This establishes the application path for the R8 query inventory:
+-- route validation -> inventory service -> parameterized SQL.
