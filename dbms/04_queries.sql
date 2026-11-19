@@ -803,3 +803,17 @@ SELECT NOW();
 --
 -- This establishes the application path for the R8 query inventory:
 -- route validation -> inventory service -> parameterized SQL.
+
+-- ============================================================
+-- CP3 AUDIT PATCH 2: R8 PARAMETER AND SCHEMA CHECK
+-- ============================================================
+-- Without productId, the service binds [limit, offset], matching
+-- LIMIT $1 and OFFSET $2 in R8 Variant A.
+-- With productId, it binds [productId, limit, offset], matching
+-- WHERE product_id = $1, LIMIT $2, and OFFSET $3 in Variant B.
+--
+-- R8 selects id, product_id, performed_by, transaction_type,
+-- quantity, quantity_before, quantity_after, and created_at.
+-- Each selected column is defined by inventory_transactions in
+-- dbms/03_schema.sql. The focused service test checks the filtered
+-- query's generated SQL and ordered values.
