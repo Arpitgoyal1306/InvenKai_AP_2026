@@ -845,3 +845,17 @@ SELECT NOW();
 -- COUNT(DISTINCT p.id) and COUNT(DISTINCT i.product_id) count
 -- products rather than rows multiplied by the joins.
 -- The focused tests cover filtered, unfiltered, and invalid IDs.
+
+-- ============================================================
+-- CP3 AUDIT PATCH 5: FINDINGS AND AUDIT LIMITS
+-- ============================================================
+-- Conclusion: no table, column, join-key, or parameter-placeholder
+-- mismatch was found for R8 or R19. No SQL correction was justified.
+--
+-- Evidence reviewed: the AP query inventory and schema, plus the
+-- InvenKai service implementations, routes, and focused service tests
+-- named in the preceding audit notes.
+--
+-- Scope limitation: this was a static source/schema/test audit.
+-- No live database execution, data loading, benchmark suite, EXPLAIN
+-- plan capture, or CP4 timing/plan file change was performed.
