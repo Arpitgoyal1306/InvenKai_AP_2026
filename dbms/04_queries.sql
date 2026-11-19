@@ -788,3 +788,74 @@ SELECT NOW();
 --      The rest of the aggregation query remains unchanged.
 --
 -- ============================================================
+
+
+-- ============================================================
+-- CP3 AUDIT PATCH 1: R8 APPLICATION TRACE
+-- ============================================================
+-- R8 is implemented by getInventoryTransactions in
+-- InvenKai/backend/src/services/inventory.service.js.
+-- The GET /history route in
+-- InvenKai/backend/src/routes/inventory.routes.js validates the
+-- optional productId and pagination inputs before invoking it.
+-- The focused test is
+-- InvenKai/backend/test/inventory.service.test.js.
+--
+-- This establishes the application path for the R8 query inventory:
+-- route validation -> inventory service -> parameterized SQL.
+
+-- ============================================================
+-- CP3 AUDIT PATCH 2: R8 PARAMETER AND SCHEMA CHECK
+-- ============================================================
+-- Without productId, the service binds [limit, offset], matching
+-- LIMIT $1 and OFFSET $2 in R8 Variant A.
+-- With productId, it binds [productId, limit, offset], matching
+-- WHERE product_id = $1, LIMIT $2, and OFFSET $3 in Variant B.
+--
+-- R8 selects id, product_id, performed_by, transaction_type,
+-- quantity, quantity_before, quantity_after, and created_at.
+-- Each selected column is defined by inventory_transactions in
+-- dbms/03_schema.sql. The focused service test checks the filtered
+-- query's generated SQL and ordered values.
+
+-- ============================================================
+-- CP3 AUDIT PATCH 3: R19 APPLICATION TRACE
+-- ============================================================
+-- R19 is implemented by getCategoryStock in
+-- InvenKai/backend/src/services/reports.service.js.
+-- The GET /category-stock route in
+-- InvenKai/backend/src/routes/reports.routes.js passes the optional
+-- categoryId to the service. The focused tests are in
+-- InvenKai/backend/test/reports.service.test.js.
+--
+-- The application path is route -> report service -> parameterized
+-- category-stock aggregation query.
+
+-- ============================================================
+-- CP3 AUDIT PATCH 4: R19 SCHEMA AND PARAMETER CHECK
+-- ============================================================
+-- Without categoryId, the service emits no WHERE clause and binds [].
+-- With categoryId, it validates/parses the value, adds
+-- WHERE c.id = $1, and binds [parsedCategoryId].
+--
+-- The schema defines categories(id, name), products.category_id
+-- referencing categories, and inventory.product_id referencing
+-- products. The R19 joins therefore use defined relationship columns.
+-- GROUP BY c.id, c.name matches the selected category attributes.
+-- COUNT(DISTINCT p.id) and COUNT(DISTINCT i.product_id) count
+-- products rather than rows multiplied by the joins.
+-- The focused tests cover filtered, unfiltered, and invalid IDs.
+
+-- ============================================================
+-- CP3 AUDIT PATCH 5: FINDINGS AND AUDIT LIMITS
+-- ============================================================
+-- Conclusion: no table, column, join-key, or parameter-placeholder
+-- mismatch was found for R8 or R19. No SQL correction was justified.
+--
+-- Evidence reviewed: the AP query inventory and schema, plus the
+-- InvenKai service implementations, routes, and focused service tests
+-- named in the preceding audit notes.
+--
+-- Scope limitation: this was a static source/schema/test audit.
+-- No live database execution, data loading, benchmark suite, EXPLAIN
+-- plan capture, or CP4 timing/plan file change was performed.
