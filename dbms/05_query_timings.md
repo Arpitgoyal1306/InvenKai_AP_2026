@@ -85,6 +85,71 @@
 | Schema commit / version | Pending |
 | Date measured | Pending |
 
+## Reproducible benchmark runbook
+
+Complete this record on the machine and database actually used for measurement. Do not copy example values as environment facts. Keep the same database, schema revision, dataset, and parameter values for all three repetitions of a query.
+
+### 1. Record the environment
+
+Connect to the target database (for example, with `psql "$DATABASE_URL"`; keep the connection string and credentials private), then record:
+
+```bash
+psql --version
+```
+
+In the connected `psql` session:
+
+```sql
+SELECT version();
+\conninfo
+
+SELECT
+  (SELECT COUNT(*) FROM users) AS users,
+  (SELECT COUNT(*) FROM categories) AS categories,
+  (SELECT COUNT(*) FROM products) AS products,
+  (SELECT COUNT(*) FROM inventory) AS inventory,
+  (SELECT COUNT(*) FROM suppliers) AS suppliers,
+  (SELECT COUNT(*) FROM supplier_products) AS supplier_products,
+  (SELECT COUNT(*) FROM orders) AS orders,
+  (SELECT COUNT(*) FROM order_items) AS order_items,
+  (SELECT COUNT(*) FROM inventory_transactions) AS inventory_transactions,
+  (SELECT COUNT(*) FROM order_outbox) AS order_outbox,
+  (SELECT COUNT(*) FROM receipts) AS receipts;
+```
+
+On the benchmark machine, record the output of `uname -a`. On macOS, use `sysctl -n machdep.cpu.brand_string` and `sysctl -n hw.memsize` for CPU model and memory bytes. On Linux, use `lscpu` and `free -h`. Record the actual outputs or concise values; do not infer hardware details from a cloud database provider.
+
+From the checked-out repository, record the revision and date:
+
+```bash
+git rev-parse HEAD
+git log -1 --format='%H %cs' -- dbms/03_schema.sql
+date '+%Y-%m-%d %H:%M:%S %Z'
+```
+
+The first command identifies the repository revision; the second identifies the latest commit affecting the schema file. Also record the dataset/table counts above and the exact query parameter values used.
+
+### 2. Run and capture a read query
+
+The following is an example for R1 from `dbms/04_queries.sql`. Replace the example email with the chosen test value, record that value, and use the same value for each repetition:
+
+```sql
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id, name, email, password_hash, role
+FROM users
+WHERE email = 'benchmark@example.com';
+```
+
+Run the statement three separate times against the same stable dataset. Save each complete plan output as `dbms/plans/R1_run1.txt`, `dbms/plans/R1_run2.txt`, and `dbms/plans/R1_run3.txt`. Repeat for each query ID, substituting its actual parameter values safely. The example value is not a claim that such a row exists in the database.
+
+### 3. Record results
+
+For every query, keep all three genuine execution outputs. Copy each plan's `Execution Time` (milliseconds) and the relevant scan node into the matching row in the timing table. Calculate the arithmetic mean as:
+
+`(Run 1 + Run 2 + Run 3) / 3`
+
+Do not reuse one execution as multiple runs, discard an unusually slow run, or fill in timings that were not measured. For write queries, follow the rollback-safe transaction procedure in [`dbms/plans/README.md`](plans/README.md). That file also defines the raw-plan naming convention and required plan contents.
+
 ## Completion checklist
 
 - [ ] All 26 READ queries measured three times.
