@@ -1,0 +1,50 @@
+R24 · Seller order lines
+
+BEGIN;
+
+PREPARE sample AS
+SELECT product_name,quantity,unit_price,line_total FROM order_items WHERE order_id=$1 ORDER BY id;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1);
+ROLLBACK;
+
+Run 1
+Sort  (cost=8.30..8.31 rows=1 width=33) (actual time=0.012..0.013 rows=1.00 loops=1)
+  Sort Key: id
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=6
+  ->  Index Scan using order_items_unique_product on order_items  (cost=0.27..8.29 rows=1 width=33) (actual time=0.006..0.006 rows=1.00 loops=1)
+        Index Cond: (order_id = '1'::bigint)
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=114
+Planning Time: 0.230 ms
+Execution Time: 0.023 ms
+
+Run 2
+Sort  (cost=8.30..8.31 rows=1 width=33) (actual time=0.012..0.012 rows=1.00 loops=1)
+  Sort Key: id
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=6
+  ->  Index Scan using order_items_unique_product on order_items  (cost=0.27..8.29 rows=1 width=33) (actual time=0.005..0.006 rows=1.00 loops=1)
+        Index Cond: (order_id = '1'::bigint)
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=114
+Planning Time: 0.203 ms
+Execution Time: 0.030 ms
+
+Run 3
+Sort  (cost=8.30..8.31 rows=1 width=33) (actual time=0.011..0.011 rows=1.00 loops=1)
+  Sort Key: id
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=6
+  ->  Index Scan using order_items_unique_product on order_items  (cost=0.27..8.29 rows=1 width=33) (actual time=0.005..0.005 rows=1.00 loops=1)
+        Index Cond: (order_id = '1'::bigint)
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=114
+Planning Time: 0.184 ms
+Execution Time: 0.021 ms

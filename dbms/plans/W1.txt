@@ -1,0 +1,60 @@
+W1 · Save store profile
+
+BEGIN;
+
+PREPARE sample AS
+INSERT INTO stores(owner_id,name,slug,description,category,contact,pickup,logo,cover)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(owner_id) DO UPDATE SET
+    name=excluded.name,slug=excluded.slug,description=excluded.description,category=excluded.category,
+    contact=excluded.contact,pickup=excluded.pickup,logo=excluded.logo,cover=excluded.cover
+    WHERE NOT stores.slug_locked OR stores.slug=excluded.slug RETURNING *;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1,'Shop 1','shop-1','Updated','Food','owner@example.test','Front desk','','');
+ROLLBACK;
+
+Run 1
+Insert on stores  (cost=0.00..0.01 rows=1 width=1292) (actual time=0.060..0.061 rows=1.00 loops=1)
+  Conflict Resolution: UPDATE
+  Conflict Arbiter Indexes: stores_owner_id_key
+  Conflict Filter: ((NOT stores.slug_locked) OR ((stores.slug)::text = (excluded.slug)::text))
+  Tuples Inserted: 0
+  Conflicting Tuples: 1
+  Buffers: shared hit=38
+  ->  Result  (cost=0.00..0.01 rows=1 width=1292) (actual time=0.016..0.016 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=65
+Planning Time: 0.083 ms
+Trigger market_store_change: time=0.640 calls=1
+Execution Time: 0.737 ms
+
+Run 2
+Insert on stores  (cost=0.00..0.01 rows=1 width=1292) (actual time=0.057..0.058 rows=1.00 loops=1)
+  Conflict Resolution: UPDATE
+  Conflict Arbiter Indexes: stores_owner_id_key
+  Conflict Filter: ((NOT stores.slug_locked) OR ((stores.slug)::text = (excluded.slug)::text))
+  Tuples Inserted: 0
+  Conflicting Tuples: 1
+  Buffers: shared hit=38
+  ->  Result  (cost=0.00..0.01 rows=1 width=1292) (actual time=0.019..0.019 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=65
+Planning Time: 0.076 ms
+Trigger market_store_change: time=0.625 calls=1
+Execution Time: 0.717 ms
+
+Run 3
+Insert on stores  (cost=0.00..0.01 rows=1 width=1292) (actual time=0.055..0.056 rows=1.00 loops=1)
+  Conflict Resolution: UPDATE
+  Conflict Arbiter Indexes: stores_owner_id_key
+  Conflict Filter: ((NOT stores.slug_locked) OR ((stores.slug)::text = (excluded.slug)::text))
+  Tuples Inserted: 0
+  Conflicting Tuples: 1
+  Buffers: shared hit=38
+  ->  Result  (cost=0.00..0.01 rows=1 width=1292) (actual time=0.014..0.014 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=65
+Planning Time: 0.075 ms
+Trigger market_store_change: time=0.587 calls=1
+Execution Time: 0.674 ms

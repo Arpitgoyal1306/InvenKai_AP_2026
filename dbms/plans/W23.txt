@@ -1,0 +1,48 @@
+W23 · Save buyer profile
+
+BEGIN;
+
+PREPARE sample AS
+UPDATE users SET name=$2,email=$3,phone=$4,pickup_address=$5,updated_at=NOW()
+       WHERE id=$1 AND email=$6 AND password_hash IS NOT DISTINCT FROM $7 RETURNING id, name, email, role, phone, pickup_address, avatar_url, password_hash IS NULL AS google_only;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(33,'Updated','updated@example.test','1234567890','{}','user33@example.test','fixture');
+ROLLBACK;
+
+Run 1
+Update on users  (cost=0.14..8.17 rows=1 width=854) (actual time=0.072..0.072 rows=1.00 loops=1)
+  Buffers: shared hit=24
+  ->  Index Scan using users_pkey on users  (cost=0.14..8.17 rows=1 width=854) (actual time=0.006..0.007 rows=1.00 loops=1)
+        Index Cond: (id = '33'::bigint)
+        Filter: ((NOT ((password_hash)::text IS DISTINCT FROM 'fixture'::text)) AND ((email)::text = 'user33@example.test'::text))
+        Index Searches: 1
+        Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=113
+Planning Time: 0.207 ms
+Execution Time: 0.107 ms
+
+Run 2
+Update on users  (cost=0.14..8.17 rows=1 width=854) (actual time=0.066..0.066 rows=1.00 loops=1)
+  Buffers: shared hit=25
+  ->  Index Scan using users_pkey on users  (cost=0.14..8.17 rows=1 width=854) (actual time=0.008..0.009 rows=1.00 loops=1)
+        Index Cond: (id = '33'::bigint)
+        Filter: ((NOT ((password_hash)::text IS DISTINCT FROM 'fixture'::text)) AND ((email)::text = 'user33@example.test'::text))
+        Index Searches: 1
+        Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=113
+Planning Time: 0.187 ms
+Execution Time: 0.097 ms
+
+Run 3
+Update on users  (cost=0.14..8.17 rows=1 width=854) (actual time=0.064..0.064 rows=1.00 loops=1)
+  Buffers: shared hit=25
+  ->  Index Scan using users_pkey on users  (cost=0.14..8.17 rows=1 width=854) (actual time=0.008..0.008 rows=1.00 loops=1)
+        Index Cond: (id = '33'::bigint)
+        Filter: ((NOT ((password_hash)::text IS DISTINCT FROM 'fixture'::text)) AND ((email)::text = 'user33@example.test'::text))
+        Index Searches: 1
+        Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=113
+Planning Time: 0.190 ms
+Execution Time: 0.095 ms

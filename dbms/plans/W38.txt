@@ -1,0 +1,52 @@
+W38 · Create warehouse product
+
+BEGIN;
+
+PREPARE sample AS
+INSERT INTO products (
+        category_id,
+        name,
+        description,
+        sku,
+        price, low_stock_threshold
+      )
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1,'New product','Description','NEW-SKU',10,3);
+ROLLBACK;
+
+Run 1
+Insert on products  (cost=0.00..0.02 rows=1 width=769) (actual time=0.119..0.119 rows=1.00 loops=1)
+  Buffers: shared hit=100
+  ->  Result  (cost=0.00..0.02 rows=1 width=769) (actual time=0.015..0.015 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=13
+Planning Time: 0.055 ms
+Trigger for constraint products_category_id_fkey: time=0.194 calls=1
+Trigger for constraint products_store_id_fkey: time=0.013 calls=1
+Execution Time: 0.338 ms
+
+Run 2
+Insert on products  (cost=0.00..0.02 rows=1 width=769) (actual time=0.133..0.133 rows=1.00 loops=1)
+  Buffers: shared hit=100
+  ->  Result  (cost=0.00..0.02 rows=1 width=769) (actual time=0.024..0.024 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=13
+Planning Time: 0.080 ms
+Trigger for constraint products_category_id_fkey: time=0.207 calls=1
+Trigger for constraint products_store_id_fkey: time=0.018 calls=1
+Execution Time: 0.376 ms
+
+Run 3
+Insert on products  (cost=0.00..0.02 rows=1 width=769) (actual time=0.110..0.110 rows=1.00 loops=1)
+  Buffers: shared hit=100
+  ->  Result  (cost=0.00..0.02 rows=1 width=769) (actual time=0.015..0.015 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=13
+Planning Time: 0.054 ms
+Trigger for constraint products_category_id_fkey: time=0.178 calls=1
+Trigger for constraint products_store_id_fkey: time=0.012 calls=1
+Execution Time: 0.312 ms

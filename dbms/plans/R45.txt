@@ -1,0 +1,127 @@
+R45 · Buyer order page and item counts
+
+BEGIN;
+
+PREPARE sample AS
+SELECT
+       o.id,
+       o.user_id,
+       o.status,
+       o.total_amount,
+       o.created_at,
+       o.updated_at,
+       COUNT(oi.id)::INTEGER AS item_count
+     FROM orders o
+     LEFT JOIN order_items oi
+       ON oi.order_id = o.id
+     WHERE o.user_id = $1
+     GROUP BY o.id
+     ORDER BY o.created_at DESC, o.id DESC
+     LIMIT $2 OFFSET $3;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(33,20,0);
+ROLLBACK;
+
+Run 1
+Limit  (cost=24.02..24.03 rows=3 width=48) (actual time=0.061..0.061 rows=3.00 loops=1)
+  Buffers: shared hit=18
+  ->  Sort  (cost=24.02..24.03 rows=3 width=48) (actual time=0.060..0.061 rows=3.00 loops=1)
+        Sort Key: o.created_at DESC, o.id DESC
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=18
+        ->  GroupAggregate  (cost=23.94..24.00 rows=3 width=48) (actual time=0.051..0.053 rows=3.00 loops=1)
+              Group Key: o.id
+              Buffers: shared hit=12
+              ->  Sort  (cost=23.94..23.95 rows=3 width=52) (actual time=0.047..0.048 rows=3.00 loops=1)
+                    Sort Key: o.id DESC
+                    Sort Method: quicksort  Memory: 25kB
+                    Buffers: shared hit=12
+                    ->  Hash Right Join  (cost=11.44..23.92 rows=3 width=52) (actual time=0.017..0.045 rows=3.00 loops=1)
+                          Hash Cond: (oi.order_id = o.id)
+                          Buffers: shared hit=12
+                          ->  Seq Scan on order_items oi  (cost=0.00..11.12 rows=512 width=16) (actual time=0.002..0.017 rows=512.00 loops=1)
+                                Buffers: shared hit=6
+                          ->  Hash  (cost=11.40..11.40 rows=3 width=44) (actual time=0.010..0.010 rows=3.00 loops=1)
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                Buffers: shared hit=6
+                                ->  Bitmap Heap Scan on orders o  (cost=4.30..11.40 rows=3 width=44) (actual time=0.006..0.008 rows=3.00 loops=1)
+                                      Recheck Cond: (user_id = '33'::bigint)
+                                      Heap Blocks: exact=4
+                                      Buffers: shared hit=6
+                                      ->  Bitmap Index Scan on idx_orders_user_created  (cost=0.00..4.29 rows=3 width=0) (actual time=0.003..0.003 rows=6.00 loops=1)
+                                            Index Cond: (user_id = '33'::bigint)
+                                            Index Searches: 1
+                                            Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=281
+Planning Time: 0.483 ms
+Execution Time: 0.107 ms
+
+Run 2
+Limit  (cost=24.02..24.03 rows=3 width=48) (actual time=0.058..0.059 rows=3.00 loops=1)
+  Buffers: shared hit=18
+  ->  Sort  (cost=24.02..24.03 rows=3 width=48) (actual time=0.058..0.058 rows=3.00 loops=1)
+        Sort Key: o.created_at DESC, o.id DESC
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=18
+        ->  GroupAggregate  (cost=23.94..24.00 rows=3 width=48) (actual time=0.049..0.050 rows=3.00 loops=1)
+              Group Key: o.id
+              Buffers: shared hit=12
+              ->  Sort  (cost=23.94..23.95 rows=3 width=52) (actual time=0.046..0.046 rows=3.00 loops=1)
+                    Sort Key: o.id DESC
+                    Sort Method: quicksort  Memory: 25kB
+                    Buffers: shared hit=12
+                    ->  Hash Right Join  (cost=11.44..23.92 rows=3 width=52) (actual time=0.016..0.044 rows=3.00 loops=1)
+                          Hash Cond: (oi.order_id = o.id)
+                          Buffers: shared hit=12
+                          ->  Seq Scan on order_items oi  (cost=0.00..11.12 rows=512 width=16) (actual time=0.002..0.016 rows=512.00 loops=1)
+                                Buffers: shared hit=6
+                          ->  Hash  (cost=11.40..11.40 rows=3 width=44) (actual time=0.010..0.010 rows=3.00 loops=1)
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                Buffers: shared hit=6
+                                ->  Bitmap Heap Scan on orders o  (cost=4.30..11.40 rows=3 width=44) (actual time=0.006..0.008 rows=3.00 loops=1)
+                                      Recheck Cond: (user_id = '33'::bigint)
+                                      Heap Blocks: exact=4
+                                      Buffers: shared hit=6
+                                      ->  Bitmap Index Scan on idx_orders_user_created  (cost=0.00..4.29 rows=3 width=0) (actual time=0.003..0.003 rows=6.00 loops=1)
+                                            Index Cond: (user_id = '33'::bigint)
+                                            Index Searches: 1
+                                            Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=281
+Planning Time: 0.447 ms
+Execution Time: 0.081 ms
+
+Run 3
+Limit  (cost=24.02..24.03 rows=3 width=48) (actual time=0.057..0.058 rows=3.00 loops=1)
+  Buffers: shared hit=18
+  ->  Sort  (cost=24.02..24.03 rows=3 width=48) (actual time=0.057..0.057 rows=3.00 loops=1)
+        Sort Key: o.created_at DESC, o.id DESC
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=18
+        ->  GroupAggregate  (cost=23.94..24.00 rows=3 width=48) (actual time=0.048..0.049 rows=3.00 loops=1)
+              Group Key: o.id
+              Buffers: shared hit=12
+              ->  Sort  (cost=23.94..23.95 rows=3 width=52) (actual time=0.045..0.045 rows=3.00 loops=1)
+                    Sort Key: o.id DESC
+                    Sort Method: quicksort  Memory: 25kB
+                    Buffers: shared hit=12
+                    ->  Hash Right Join  (cost=11.44..23.92 rows=3 width=52) (actual time=0.016..0.043 rows=3.00 loops=1)
+                          Hash Cond: (oi.order_id = o.id)
+                          Buffers: shared hit=12
+                          ->  Seq Scan on order_items oi  (cost=0.00..11.12 rows=512 width=16) (actual time=0.002..0.016 rows=512.00 loops=1)
+                                Buffers: shared hit=6
+                          ->  Hash  (cost=11.40..11.40 rows=3 width=44) (actual time=0.010..0.010 rows=3.00 loops=1)
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                Buffers: shared hit=6
+                                ->  Bitmap Heap Scan on orders o  (cost=4.30..11.40 rows=3 width=44) (actual time=0.006..0.008 rows=3.00 loops=1)
+                                      Recheck Cond: (user_id = '33'::bigint)
+                                      Heap Blocks: exact=4
+                                      Buffers: shared hit=6
+                                      ->  Bitmap Index Scan on idx_orders_user_created  (cost=0.00..4.29 rows=3 width=0) (actual time=0.003..0.003 rows=6.00 loops=1)
+                                            Index Cond: (user_id = '33'::bigint)
+                                            Index Searches: 1
+                                            Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=281
+Planning Time: 0.405 ms
+Execution Time: 0.079 ms

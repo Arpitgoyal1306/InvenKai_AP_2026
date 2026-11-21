@@ -1,0 +1,44 @@
+R10 · Published store details
+
+BEGIN;
+
+PREPARE sample AS
+SELECT id,name,slug,description,category,contact,pickup,logo,cover FROM stores WHERE slug=$1 AND published FOR SHARE;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample('shop-1');
+ROLLBACK;
+
+Run 1
+LockRows  (cost=0.00..1.41 rows=1 width=65) (actual time=0.016..0.018 rows=1.00 loops=1)
+  Buffers: shared hit=2
+  ->  Seq Scan on stores  (cost=0.00..1.40 rows=1 width=65) (actual time=0.006..0.008 rows=1.00 loops=1)
+        Filter: (published AND ((slug)::text = 'shop-1'::text))
+        Rows Removed by Filter: 31
+        Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=123
+Planning Time: 0.220 ms
+Execution Time: 0.030 ms
+
+Run 2
+LockRows  (cost=0.00..1.41 rows=1 width=65) (actual time=0.014..0.016 rows=1.00 loops=1)
+  Buffers: shared hit=2
+  ->  Seq Scan on stores  (cost=0.00..1.40 rows=1 width=65) (actual time=0.005..0.007 rows=1.00 loops=1)
+        Filter: (published AND ((slug)::text = 'shop-1'::text))
+        Rows Removed by Filter: 31
+        Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=123
+Planning Time: 0.178 ms
+Execution Time: 0.025 ms
+
+Run 3
+LockRows  (cost=0.00..1.41 rows=1 width=65) (actual time=0.013..0.014 rows=1.00 loops=1)
+  Buffers: shared hit=2
+  ->  Seq Scan on stores  (cost=0.00..1.40 rows=1 width=65) (actual time=0.005..0.007 rows=1.00 loops=1)
+        Filter: (published AND ((slug)::text = 'shop-1'::text))
+        Rows Removed by Filter: 31
+        Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=123
+Planning Time: 0.177 ms
+Execution Time: 0.023 ms

@@ -1,0 +1,74 @@
+R65 · Receipt generation inputs
+
+BEGIN;
+
+PREPARE sample AS
+SELECT o.id AS order_id, o.user_id, o.total_amount,
+              oi.id AS item_id, oi.product_id, oi.product_name, oi.sku,
+              oi.unit_price, oi.quantity, oi.line_total
+       FROM orders o
+       LEFT JOIN order_items oi ON oi.order_id = o.id
+       WHERE o.id = $1
+       ORDER BY oi.id;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1);
+ROLLBACK;
+
+Run 1
+Sort  (cost=16.60..16.61 rows=1 width=69) (actual time=0.021..0.022 rows=1.00 loops=1)
+  Sort Key: oi.id
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=11
+  ->  Nested Loop Left Join  (cost=0.55..16.59 rows=1 width=69) (actual time=0.013..0.015 rows=1.00 loops=1)
+        Buffers: shared hit=8
+        ->  Index Scan using orders_pkey on orders o  (cost=0.27..8.29 rows=1 width=21) (actual time=0.008..0.009 rows=1.00 loops=1)
+              Index Cond: (id = '1'::bigint)
+              Index Searches: 1
+              Buffers: shared hit=5
+        ->  Index Scan using order_items_unique_product on order_items oi  (cost=0.27..8.29 rows=1 width=56) (actual time=0.005..0.005 rows=1.00 loops=1)
+              Index Cond: (order_id = '1'::bigint)
+              Index Searches: 1
+              Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=222
+Planning Time: 0.371 ms
+Execution Time: 0.038 ms
+
+Run 2
+Sort  (cost=16.60..16.61 rows=1 width=69) (actual time=0.017..0.018 rows=1.00 loops=1)
+  Sort Key: oi.id
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=9
+  ->  Nested Loop Left Join  (cost=0.55..16.59 rows=1 width=69) (actual time=0.011..0.012 rows=1.00 loops=1)
+        Buffers: shared hit=6
+        ->  Index Scan using orders_pkey on orders o  (cost=0.27..8.29 rows=1 width=21) (actual time=0.005..0.006 rows=1.00 loops=1)
+              Index Cond: (id = '1'::bigint)
+              Index Searches: 1
+              Buffers: shared hit=3
+        ->  Index Scan using order_items_unique_product on order_items oi  (cost=0.27..8.29 rows=1 width=56) (actual time=0.005..0.005 rows=1.00 loops=1)
+              Index Cond: (order_id = '1'::bigint)
+              Index Searches: 1
+              Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=222
+Planning Time: 0.322 ms
+Execution Time: 0.033 ms
+
+Run 3
+Sort  (cost=16.60..16.61 rows=1 width=69) (actual time=0.017..0.017 rows=1.00 loops=1)
+  Sort Key: oi.id
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=9
+  ->  Nested Loop Left Join  (cost=0.55..16.59 rows=1 width=69) (actual time=0.010..0.011 rows=1.00 loops=1)
+        Buffers: shared hit=6
+        ->  Index Scan using orders_pkey on orders o  (cost=0.27..8.29 rows=1 width=21) (actual time=0.005..0.005 rows=1.00 loops=1)
+              Index Cond: (id = '1'::bigint)
+              Index Searches: 1
+              Buffers: shared hit=3
+        ->  Index Scan using order_items_unique_product on order_items oi  (cost=0.27..8.29 rows=1 width=56) (actual time=0.004..0.005 rows=1.00 loops=1)
+              Index Cond: (order_id = '1'::bigint)
+              Index Searches: 1
+              Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=222
+Planning Time: 0.316 ms
+Execution Time: 0.033 ms

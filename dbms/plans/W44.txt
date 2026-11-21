@@ -1,0 +1,49 @@
+W44 · Deactivate supplier
+
+BEGIN;
+
+PREPARE sample AS
+UPDATE suppliers
+     SET is_active = FALSE,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1
+       AND is_active = TRUE
+     RETURNING *;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1);
+ROLLBACK;
+
+Run 1
+Update on suppliers  (cost=0.00..1.40 rows=1 width=15) (actual time=0.050..0.052 rows=1.00 loops=1)
+  Buffers: shared hit=13
+  ->  Seq Scan on suppliers  (cost=0.00..1.40 rows=1 width=15) (actual time=0.006..0.007 rows=1.00 loops=1)
+        Filter: (is_active AND (id = '1'::bigint))
+        Rows Removed by Filter: 31
+        Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=77
+Planning Time: 0.167 ms
+Execution Time: 0.085 ms
+
+Run 2
+Update on suppliers  (cost=0.00..1.40 rows=1 width=15) (actual time=0.048..0.050 rows=1.00 loops=1)
+  Buffers: shared hit=13
+  ->  Seq Scan on suppliers  (cost=0.00..1.40 rows=1 width=15) (actual time=0.005..0.007 rows=1.00 loops=1)
+        Filter: (is_active AND (id = '1'::bigint))
+        Rows Removed by Filter: 31
+        Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=77
+Planning Time: 0.141 ms
+Execution Time: 0.081 ms
+
+Run 3
+Update on suppliers  (cost=0.00..1.40 rows=1 width=15) (actual time=0.045..0.047 rows=1.00 loops=1)
+  Buffers: shared hit=13
+  ->  Seq Scan on suppliers  (cost=0.00..1.40 rows=1 width=15) (actual time=0.006..0.007 rows=1.00 loops=1)
+        Filter: (is_active AND (id = '1'::bigint))
+        Rows Removed by Filter: 31
+        Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=77
+Planning Time: 0.140 ms
+Execution Time: 0.077 ms

@@ -1,0 +1,123 @@
+R8 · Published shop directory and previews
+
+BEGIN;
+
+PREPARE sample AS
+SELECT s.name,s.slug,s.description,s.category,s.logo,s.cover,
+          COALESCE((
+            SELECT json_agg(json_build_object(
+              'id', p.id::text, 'name', p.name, 'price', p.price::text, 'quantity', i.quantity
+            ) ORDER BY p.id DESC)
+            FROM (
+              SELECT id,name,price FROM products
+              WHERE store_id=s.id AND NOT archived ORDER BY id DESC LIMIT 3
+            ) p JOIN inventory i ON i.product_id=p.id
+          ), '[]'::json) AS products
+       FROM stores s
+       WHERE s.published AND strpos(lower(s.name), lower($1)) > 0
+         AND ($2 = '' OR lower(s.category) = lower($2))
+       ORDER BY s.name,s.id LIMIT $3 OFFSET $4;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample('','',21,0);
+ROLLBACK;
+
+Run 1
+Limit  (cost=1.68..254.52 rows=8 width=62) (actual time=0.062..0.281 rows=21.00 loops=1)
+  Buffers: shared hit=293
+  ->  Result  (cost=1.68..254.52 rows=8 width=62) (actual time=0.062..0.280 rows=21.00 loops=1)
+        Buffers: shared hit=293
+        ->  Sort  (cost=1.68..1.70 rows=8 width=30) (actual time=0.023..0.023 rows=21.00 loops=1)
+              Sort Key: s.name, s.id
+              Sort Method: quicksort  Memory: 26kB
+              Buffers: shared hit=7
+              ->  Seq Scan on stores s  (cost=0.00..1.56 rows=8 width=30) (actual time=0.004..0.007 rows=24.00 loops=1)
+                    Filter: (published AND (strpos(lower((name)::text), ''::text) > 0))
+                    Rows Removed by Filter: 8
+                    Buffers: shared hit=1
+        SubPlan 1
+          ->  Aggregate  (cost=31.58..31.59 rows=1 width=32) (actual time=0.012..0.012 rows=1.00 loops=21)
+                Buffers: shared hit=286
+                ->  Nested Loop  (cost=0.56..31.54 rows=3 width=29) (actual time=0.003..0.009 rows=3.00 loops=21)
+                      Buffers: shared hit=286
+                      ->  Limit  (cost=0.28..6.64 rows=3 width=25) (actual time=0.003..0.007 rows=3.00 loops=21)
+                            Buffers: shared hit=97
+                            ->  Index Scan Backward using products_pkey on products  (cost=0.28..102.12 rows=48 width=25) (actual time=0.002..0.007 rows=3.00 loops=21)
+                                  Filter: ((NOT archived) AND (store_id = s.id))
+                                  Rows Removed by Filter: 103
+                                  Index Searches: 21
+                                  Buffers: shared hit=97
+                      ->  Index Scan using inventory_product_id_key on inventory i  (cost=0.28..8.29 rows=1 width=12) (actual time=0.000..0.000 rows=1.00 loops=63)
+                            Index Cond: (product_id = products.id)
+                            Index Searches: 63
+                            Buffers: shared hit=189
+Planning:
+  Buffers: shared hit=291
+Planning Time: 0.480 ms
+Execution Time: 0.307 ms
+
+Run 2
+Limit  (cost=1.68..254.52 rows=8 width=62) (actual time=0.053..0.266 rows=21.00 loops=1)
+  Buffers: shared hit=293
+  ->  Result  (cost=1.68..254.52 rows=8 width=62) (actual time=0.052..0.265 rows=21.00 loops=1)
+        Buffers: shared hit=293
+        ->  Sort  (cost=1.68..1.70 rows=8 width=30) (actual time=0.019..0.020 rows=21.00 loops=1)
+              Sort Key: s.name, s.id
+              Sort Method: quicksort  Memory: 26kB
+              Buffers: shared hit=7
+              ->  Seq Scan on stores s  (cost=0.00..1.56 rows=8 width=30) (actual time=0.003..0.006 rows=24.00 loops=1)
+                    Filter: (published AND (strpos(lower((name)::text), ''::text) > 0))
+                    Rows Removed by Filter: 8
+                    Buffers: shared hit=1
+        SubPlan 1
+          ->  Aggregate  (cost=31.58..31.59 rows=1 width=32) (actual time=0.011..0.011 rows=1.00 loops=21)
+                Buffers: shared hit=286
+                ->  Nested Loop  (cost=0.56..31.54 rows=3 width=29) (actual time=0.003..0.009 rows=3.00 loops=21)
+                      Buffers: shared hit=286
+                      ->  Limit  (cost=0.28..6.64 rows=3 width=25) (actual time=0.002..0.007 rows=3.00 loops=21)
+                            Buffers: shared hit=97
+                            ->  Index Scan Backward using products_pkey on products  (cost=0.28..102.12 rows=48 width=25) (actual time=0.002..0.007 rows=3.00 loops=21)
+                                  Filter: ((NOT archived) AND (store_id = s.id))
+                                  Rows Removed by Filter: 103
+                                  Index Searches: 21
+                                  Buffers: shared hit=97
+                      ->  Index Scan using inventory_product_id_key on inventory i  (cost=0.28..8.29 rows=1 width=12) (actual time=0.000..0.000 rows=1.00 loops=63)
+                            Index Cond: (product_id = products.id)
+                            Index Searches: 63
+                            Buffers: shared hit=189
+Planning:
+  Buffers: shared hit=291
+Planning Time: 0.423 ms
+Execution Time: 0.287 ms
+
+Run 3
+Limit  (cost=1.68..254.52 rows=8 width=62) (actual time=0.051..0.233 rows=21.00 loops=1)
+  Buffers: shared hit=293
+  ->  Result  (cost=1.68..254.52 rows=8 width=62) (actual time=0.050..0.232 rows=21.00 loops=1)
+        Buffers: shared hit=293
+        ->  Sort  (cost=1.68..1.70 rows=8 width=30) (actual time=0.019..0.019 rows=21.00 loops=1)
+              Sort Key: s.name, s.id
+              Sort Method: quicksort  Memory: 26kB
+              Buffers: shared hit=7
+              ->  Seq Scan on stores s  (cost=0.00..1.56 rows=8 width=30) (actual time=0.003..0.006 rows=24.00 loops=1)
+                    Filter: (published AND (strpos(lower((name)::text), ''::text) > 0))
+                    Rows Removed by Filter: 8
+                    Buffers: shared hit=1
+        SubPlan 1
+          ->  Aggregate  (cost=31.58..31.59 rows=1 width=32) (actual time=0.010..0.010 rows=1.00 loops=21)
+                Buffers: shared hit=286
+                ->  Nested Loop  (cost=0.56..31.54 rows=3 width=29) (actual time=0.003..0.008 rows=3.00 loops=21)
+                      Buffers: shared hit=286
+                      ->  Limit  (cost=0.28..6.64 rows=3 width=25) (actual time=0.002..0.006 rows=3.00 loops=21)
+                            Buffers: shared hit=97
+                            ->  Index Scan Backward using products_pkey on products  (cost=0.28..102.12 rows=48 width=25) (actual time=0.002..0.006 rows=3.00 loops=21)
+                                  Filter: ((NOT archived) AND (store_id = s.id))
+                                  Rows Removed by Filter: 103
+                                  Index Searches: 21
+                                  Buffers: shared hit=97
+                      ->  Index Scan using inventory_product_id_key on inventory i  (cost=0.28..8.29 rows=1 width=12) (actual time=0.000..0.000 rows=1.00 loops=63)
+                            Index Cond: (product_id = products.id)
+                            Index Searches: 63
+                            Buffers: shared hit=189
+Planning:
+  Buffers: shared hit=291
+Planning Time: 0.428 ms
+Execution Time: 0.254 ms

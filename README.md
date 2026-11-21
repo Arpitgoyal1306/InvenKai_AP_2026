@@ -1,35 +1,31 @@
-# InvenKai_AP_2026
+# InvenKai · AP database submission
 
-PostgreSQL database documentation, normalization analysis, ER diagram, DDL schema, and schema assertions for the **InvenKai** inventory and order management project.
+Team T0032 models the PostgreSQL data behind InvenKai’s buyer marketplace, seller storefronts and warehouse operations. This submission follows [application commit 33b5bbe](https://github.com/Arpitgoyal1306/InvenKai/tree/33b5bbe), including all 20 migrations under `server/migrations/`.
 
-## Source of Truth
+| AP checkpoint | Deliverable |
+|---|---|
+| CP0 | The tracker assigns setup to the DE repository. |
+| CP1 | [Normalization and functional dependencies](dbms/01_normalization.md) |
+| CP2 | [ER diagram](dbms/02_er_diagram.png), [PostgreSQL schema](dbms/03_schema.sql) and [schema assertions](dbms/04_assertions.sql) |
+| CP3 | [Application SQL inventory](dbms/04_queries.sql) |
+| CP4 | [Measured timings](dbms/05_query_timings.md), [execution plans and reproduction steps](dbms/plans/) |
 
-The application implementation and database migrations are maintained in `Arpitgoyal1306/InvenKai` under `backend/migrations/` (11 sequential migrations). All 11 tables, constraints, indexes, and triggers in this repository reflect the final state of those migrations.
+## From storefront to receipt
 
-## Repository Structure
+1. Buyers browse published stores in React. The cart stays in browser session storage. Password and Google sign-in both resolve to a user account. Store ownership grants access to a seller’s listings, stock and incoming orders.
+2. The Express API checks the storefront, locks the requested products and inventory in a consistent order, and checks availability. Checkout commits the order, buyer and pickup snapshots, line items, stock deductions, audit records and receipt outbox event together. A per-buyer retry key and request fingerprint protect repeated submissions.
+3. The dispatcher claims outbox events and submits jobs to BullMQ in Redis. The receipt worker stores an immutable receipt snapshot in PostgreSQL. The buyer can view purchases and receipts while the seller advances fulfillment.
+4. PostgreSQL notifications prompt public and owner-specific marketplace refreshes over Server-Sent Events. Staff tools use the warehouse inventory, supplier and reporting paths, with Redis and WebSocket inventory updates.
 
-```text
-.
-├── .github/workflows/db-schema-check.yml   # PostgreSQL 16 CI check
-├── dbms/
-│   ├── 01_normalization.md                 # 1NF–BCNF analysis (all 11 relations)
-│   ├── 02_er_diagram.png                   # ER diagram (11 entities, 13 relationships)
-│   ├── 03_schema.sql                       # PostgreSQL DDL matching all 11 migrations
-│   └── 04_assertions.sql                   # Fail-fast schema & trigger assertions
-└── README.md
+The schema has 12 application tables and 16 foreign keys. The application migrations also backfill zero-stock inventory for older products and convert historical order timestamps using the verified deployment timezone. The standalone SQL creates the resulting schema in an empty database. Apply the app migrations when upgrading existing application data.
+
+## Verify the submission
+
+From the repository root, using an empty local PostgreSQL database:
+
+```sh
+createdb invenkai_ap_check
+psql -X -v ON_ERROR_STOP=1 -d invenkai_ap_check -f dbms/03_schema.sql -f dbms/04_assertions.sql
 ```
 
-## Database Technology
-
-- **PostgreSQL 16+** (uses `GENERATED ALWAYS AS (...) STORED`, `TIMESTAMPTZ`, `JSONB`, `UUID`, partial indexes, and PL/pgSQL triggers).
-
-## Local Execution
-
-Run the schema and assertions against a clean PostgreSQL database:
-
-```bash
-createdb invenkai_test
-psql -v ON_ERROR_STOP=1 -d invenkai_test -f dbms/03_schema.sql
-psql -v ON_ERROR_STOP=1 -d invenkai_test -f dbms/04_assertions.sql
-dropdb invenkai_test
-```
+Use a separate empty database for the [benchmark fixture](dbms/plans/README.md). Its generated IDs are referenced by the captured query parameters.

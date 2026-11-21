@@ -1,0 +1,99 @@
+R21 · Owner low-stock alerts
+
+BEGIN;
+
+PREPARE sample AS
+SELECT p.id,p.name,i.quantity FROM products p JOIN inventory i ON i.product_id=p.id
+        WHERE p.store_id=$1 AND (NOT p.archived AND (i.quantity <= COALESCE(p.low_stock_threshold, 3))) ORDER BY i.updated_at DESC,p.id DESC LIMIT 20;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1);
+ROLLBACK;
+
+Run 1
+Limit  (cost=82.31..82.35 rows=16 width=32) (actual time=0.150..0.151 rows=9.00 loops=1)
+  Buffers: shared hit=56
+  ->  Sort  (cost=82.31..82.35 rows=16 width=32) (actual time=0.150..0.151 rows=9.00 loops=1)
+        Sort Key: i.updated_at DESC, p.id DESC
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=56
+        ->  Hash Join  (cost=38.14..81.99 rows=16 width=32) (actual time=0.044..0.139 rows=9.00 loops=1)
+              Hash Cond: (i.product_id = p.id)
+              Join Filter: (i.quantity <= COALESCE(p.low_stock_threshold, 3))
+              Rows Removed by Join Filter: 38
+              Buffers: shared hit=50
+              ->  Seq Scan on inventory i  (cost=0.00..38.48 rows=2048 width=20) (actual time=0.002..0.047 rows=2048.00 loops=1)
+                    Buffers: shared hit=18
+              ->  Hash  (cost=37.54..37.54 rows=48 width=24) (actual time=0.037..0.038 rows=47.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 11kB
+                    Buffers: shared hit=32
+                    ->  Bitmap Heap Scan on products p  (cost=4.77..37.54 rows=48 width=24) (actual time=0.009..0.033 rows=47.00 loops=1)
+                          Recheck Cond: ((store_id = '1'::bigint) AND (NOT archived))
+                          Heap Blocks: exact=30
+                          Buffers: shared hit=32
+                          ->  Bitmap Index Scan on market_products  (cost=0.00..4.76 rows=48 width=0) (actual time=0.005..0.005 rows=53.00 loops=1)
+                                Index Cond: ((store_id = '1'::bigint) AND (archived = false))
+                                Index Searches: 1
+                                Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=337
+Planning Time: 0.413 ms
+Execution Time: 0.167 ms
+
+Run 2
+Limit  (cost=82.31..82.35 rows=16 width=32) (actual time=0.187..0.189 rows=9.00 loops=1)
+  Buffers: shared hit=56
+  ->  Sort  (cost=82.31..82.35 rows=16 width=32) (actual time=0.187..0.188 rows=9.00 loops=1)
+        Sort Key: i.updated_at DESC, p.id DESC
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=56
+        ->  Hash Join  (cost=38.14..81.99 rows=16 width=32) (actual time=0.061..0.174 rows=9.00 loops=1)
+              Hash Cond: (i.product_id = p.id)
+              Join Filter: (i.quantity <= COALESCE(p.low_stock_threshold, 3))
+              Rows Removed by Join Filter: 38
+              Buffers: shared hit=50
+              ->  Seq Scan on inventory i  (cost=0.00..38.48 rows=2048 width=20) (actual time=0.002..0.054 rows=2048.00 loops=1)
+                    Buffers: shared hit=18
+              ->  Hash  (cost=37.54..37.54 rows=48 width=24) (actual time=0.054..0.054 rows=47.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 11kB
+                    Buffers: shared hit=32
+                    ->  Bitmap Heap Scan on products p  (cost=4.77..37.54 rows=48 width=24) (actual time=0.012..0.048 rows=47.00 loops=1)
+                          Recheck Cond: ((store_id = '1'::bigint) AND (NOT archived))
+                          Heap Blocks: exact=30
+                          Buffers: shared hit=32
+                          ->  Bitmap Index Scan on market_products  (cost=0.00..4.76 rows=48 width=0) (actual time=0.007..0.007 rows=53.00 loops=1)
+                                Index Cond: ((store_id = '1'::bigint) AND (archived = false))
+                                Index Searches: 1
+                                Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=337
+Planning Time: 0.523 ms
+Execution Time: 0.209 ms
+
+Run 3
+Limit  (cost=82.31..82.35 rows=16 width=32) (actual time=0.172..0.174 rows=9.00 loops=1)
+  Buffers: shared hit=56
+  ->  Sort  (cost=82.31..82.35 rows=16 width=32) (actual time=0.172..0.173 rows=9.00 loops=1)
+        Sort Key: i.updated_at DESC, p.id DESC
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=56
+        ->  Hash Join  (cost=38.14..81.99 rows=16 width=32) (actual time=0.051..0.160 rows=9.00 loops=1)
+              Hash Cond: (i.product_id = p.id)
+              Join Filter: (i.quantity <= COALESCE(p.low_stock_threshold, 3))
+              Rows Removed by Join Filter: 38
+              Buffers: shared hit=50
+              ->  Seq Scan on inventory i  (cost=0.00..38.48 rows=2048 width=20) (actual time=0.002..0.054 rows=2048.00 loops=1)
+                    Buffers: shared hit=18
+              ->  Hash  (cost=37.54..37.54 rows=48 width=24) (actual time=0.044..0.044 rows=47.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 11kB
+                    Buffers: shared hit=32
+                    ->  Bitmap Heap Scan on products p  (cost=4.77..37.54 rows=48 width=24) (actual time=0.010..0.039 rows=47.00 loops=1)
+                          Recheck Cond: ((store_id = '1'::bigint) AND (NOT archived))
+                          Heap Blocks: exact=30
+                          Buffers: shared hit=32
+                          ->  Bitmap Index Scan on market_products  (cost=0.00..4.76 rows=48 width=0) (actual time=0.006..0.006 rows=53.00 loops=1)
+                                Index Cond: ((store_id = '1'::bigint) AND (archived = false))
+                                Index Searches: 1
+                                Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=337
+Planning Time: 0.470 ms
+Execution Time: 0.192 ms

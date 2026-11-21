@@ -1,0 +1,92 @@
+R37 · Warehouse low-stock list
+
+BEGIN;
+
+PREPARE sample AS
+SELECT
+         p.id AS product_id,
+         p.name,
+         p.sku,
+         p.category_id,
+         i.quantity,
+         p.low_stock_threshold
+       FROM products p
+       INNER JOIN inventory i ON i.product_id = p.id
+       WHERE p.low_stock_threshold IS NOT NULL
+         AND i.quantity <= p.low_stock_threshold
+         AND p.store_id IS NULL AND NOT p.archived
+       ORDER BY i.quantity ASC, p.name ASC;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample;
+ROLLBACK;
+
+Run 1
+Sort  (cost=104.63..104.95 rows=128 width=44) (actual time=0.312..0.315 rows=129.00 loops=1)
+  Sort Key: i.quantity, p.name
+  Sort Method: quicksort  Memory: 33kB
+  Buffers: shared hit=55
+  ->  Hash Join  (cost=56.29..100.15 rows=128 width=44) (actual time=0.149..0.265 rows=129.00 loops=1)
+        Hash Cond: (i.product_id = p.id)
+        Join Filter: (i.quantity <= p.low_stock_threshold)
+        Rows Removed by Join Filter: 256
+        Buffers: shared hit=49
+        ->  Seq Scan on inventory i  (cost=0.00..38.48 rows=2048 width=12) (actual time=0.002..0.049 rows=2048.00 loops=1)
+              Buffers: shared hit=18
+        ->  Hash  (cost=51.48..51.48 rows=385 width=40) (actual time=0.142..0.142 rows=385.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 37kB
+              Buffers: shared hit=31
+              ->  Seq Scan on products p  (cost=0.00..51.48 rows=385 width=40) (actual time=0.004..0.097 rows=385.00 loops=1)
+                    Filter: ((low_stock_threshold IS NOT NULL) AND (store_id IS NULL) AND (NOT archived))
+                    Rows Removed by Filter: 1663
+                    Buffers: shared hit=31
+Planning:
+  Buffers: shared hit=303
+Planning Time: 0.425 ms
+Execution Time: 0.336 ms
+
+Run 2
+Sort  (cost=104.63..104.95 rows=128 width=44) (actual time=0.285..0.288 rows=129.00 loops=1)
+  Sort Key: i.quantity, p.name
+  Sort Method: quicksort  Memory: 33kB
+  Buffers: shared hit=55
+  ->  Hash Join  (cost=56.29..100.15 rows=128 width=44) (actual time=0.123..0.240 rows=129.00 loops=1)
+        Hash Cond: (i.product_id = p.id)
+        Join Filter: (i.quantity <= p.low_stock_threshold)
+        Rows Removed by Join Filter: 256
+        Buffers: shared hit=49
+        ->  Seq Scan on inventory i  (cost=0.00..38.48 rows=2048 width=12) (actual time=0.002..0.046 rows=2048.00 loops=1)
+              Buffers: shared hit=18
+        ->  Hash  (cost=51.48..51.48 rows=385 width=40) (actual time=0.117..0.117 rows=385.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 37kB
+              Buffers: shared hit=31
+              ->  Seq Scan on products p  (cost=0.00..51.48 rows=385 width=40) (actual time=0.004..0.094 rows=385.00 loops=1)
+                    Filter: ((low_stock_threshold IS NOT NULL) AND (store_id IS NULL) AND (NOT archived))
+                    Rows Removed by Filter: 1663
+                    Buffers: shared hit=31
+Planning:
+  Buffers: shared hit=303
+Planning Time: 0.379 ms
+Execution Time: 0.310 ms
+
+Run 3
+Sort  (cost=104.63..104.95 rows=128 width=44) (actual time=0.282..0.285 rows=129.00 loops=1)
+  Sort Key: i.quantity, p.name
+  Sort Method: quicksort  Memory: 33kB
+  Buffers: shared hit=55
+  ->  Hash Join  (cost=56.29..100.15 rows=128 width=44) (actual time=0.117..0.229 rows=129.00 loops=1)
+        Hash Cond: (i.product_id = p.id)
+        Join Filter: (i.quantity <= p.low_stock_threshold)
+        Rows Removed by Join Filter: 256
+        Buffers: shared hit=49
+        ->  Seq Scan on inventory i  (cost=0.00..38.48 rows=2048 width=12) (actual time=0.002..0.044 rows=2048.00 loops=1)
+              Buffers: shared hit=18
+        ->  Hash  (cost=51.48..51.48 rows=385 width=40) (actual time=0.112..0.112 rows=385.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 37kB
+              Buffers: shared hit=31
+              ->  Seq Scan on products p  (cost=0.00..51.48 rows=385 width=40) (actual time=0.003..0.091 rows=385.00 loops=1)
+                    Filter: ((low_stock_threshold IS NOT NULL) AND (store_id IS NULL) AND (NOT archived))
+                    Rows Removed by Filter: 1663
+                    Buffers: shared hit=31
+Planning:
+  Buffers: shared hit=303
+Planning Time: 0.343 ms
+Execution Time: 0.304 ms

@@ -1,0 +1,52 @@
+R52 · Warehouse product page
+
+BEGIN;
+
+PREPARE sample AS
+SELECT *
+     FROM products
+     WHERE store_id IS NULL AND NOT archived
+     ORDER BY id
+     LIMIT $1
+     OFFSET $2;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(20,0);
+ROLLBACK;
+
+Run 1
+Limit  (cost=0.28..5.30 rows=20 width=111) (actual time=0.006..0.013 rows=20.00 loops=1)
+  Buffers: shared hit=4
+  ->  Index Scan using products_pkey on products  (cost=0.28..97.00 rows=385 width=111) (actual time=0.006..0.012 rows=20.00 loops=1)
+        Filter: ((store_id IS NULL) AND (NOT archived))
+        Rows Removed by Filter: 85
+        Index Searches: 1
+        Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=168
+Planning Time: 0.223 ms
+Execution Time: 0.022 ms
+
+Run 2
+Limit  (cost=0.28..5.30 rows=20 width=111) (actual time=0.007..0.013 rows=20.00 loops=1)
+  Buffers: shared hit=4
+  ->  Index Scan using products_pkey on products  (cost=0.28..97.00 rows=385 width=111) (actual time=0.006..0.012 rows=20.00 loops=1)
+        Filter: ((store_id IS NULL) AND (NOT archived))
+        Rows Removed by Filter: 85
+        Index Searches: 1
+        Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=168
+Planning Time: 0.248 ms
+Execution Time: 0.023 ms
+
+Run 3
+Limit  (cost=0.28..5.30 rows=20 width=111) (actual time=0.006..0.012 rows=20.00 loops=1)
+  Buffers: shared hit=4
+  ->  Index Scan using products_pkey on products  (cost=0.28..97.00 rows=385 width=111) (actual time=0.006..0.011 rows=20.00 loops=1)
+        Filter: ((store_id IS NULL) AND (NOT archived))
+        Rows Removed by Filter: 85
+        Index Searches: 1
+        Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=168
+Planning Time: 0.226 ms
+Execution Time: 0.022 ms

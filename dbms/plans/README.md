@@ -1,46 +1,12 @@
-# CP4 Execution Plans
+# Reproduce the CP4 measurements
 
-This directory stores the raw PostgreSQL execution plans for the 46 query IDs in `../04_queries.sql`.
+Each query has one text file containing its CP3 ID, exact prepared SQL, sample arguments, rollback transaction and three complete PostgreSQL plans. The timing report links directly to each file.
 
-## Required files
+Use a new, empty local database so the fixture gets the same generated identifiers. From the repository root:
 
-Save three complete plan outputs for every query:
-
-- `R1_run1.txt`
-- `R1_run2.txt`
-- `R1_run3.txt`
-- Repeat for `R2` through `R26` and `W1` through `W20`.
-
-That is 138 plan files when all 46 queries have three successful runs.
-
-## Capture format
-
-Use:
-
-```sql
-EXPLAIN (ANALYZE, BUFFERS)
-<the exact parameterized query with test values substituted safely>;
+```sh
+createdb invenkai_ap_bench
+psql -X -v ON_ERROR_STOP=1 -d invenkai_ap_bench -f dbms/03_schema.sql -f dbms/plans/fixture.sql
 ```
 
-Use SQL literals only for local measurement. Never interpolate untrusted input into application code.
-
-For each write query, use a rollback-safe transaction:
-
-```sql
-BEGIN;
-
-EXPLAIN (ANALYZE, BUFFERS)
-<write statement with valid test values>;
-
-ROLLBACK;
-```
-
-For a write that depends on another row, insert the fixture row(s) after `BEGIN`, run the explained statement, and roll back the entire transaction. Keep the setup and query in the same transaction so the measured operation sees valid references.
-
-## Important
-
-- Preserve the full plan text, including Planning Time, Execution Time, buffer details, and node-level scan information.
-- Do not save only a screenshot or a manually summarized plan.
-- Do not invent or estimate missing timings.
-- The corresponding three execution times and scan type must be entered in `../05_query_timings.md`.
-- Use the same database, schema, data volume, and environment for all repetitions.
+Open a plan file and execute its block from `BEGIN` through `ROLLBACK` three times, each in a fresh psql connection. The sample transaction includes any setup needed by that operation. This isolates writes while allowing PostgreSQL to measure trigger work. Use the server’s Execution Time line in each plan for the mean. The parent [timing report](../05_query_timings.md) describes the dataset and environment.

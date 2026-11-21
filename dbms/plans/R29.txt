@@ -1,0 +1,57 @@
+R29 · Operations queue totals
+
+BEGIN;
+
+PREPARE sample AS
+SELECT COUNT(*) FILTER (WHERE status='pending') AS pending,
+           COUNT(*) FILTER (WHERE status='processing') AS processing,
+           COUNT(*) FILTER (WHERE status='dispatched') AS dispatched,
+           (SELECT COUNT(*) FROM receipts) AS issued
+    FROM order_outbox;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample;
+ROLLBACK;
+
+Run 1
+Aggregate  (cost=31.94..31.95 rows=1 width=32) (actual time=0.068..0.068 rows=1.00 loops=1)
+  Buffers: shared hit=17
+  InitPlan 1
+    ->  Aggregate  (cost=9.12..9.13 rows=1 width=8) (actual time=0.015..0.015 rows=1.00 loops=1)
+          Buffers: shared hit=7
+          ->  Seq Scan on receipts  (cost=0.00..8.70 rows=170 width=0) (actual time=0.003..0.012 rows=170.00 loops=1)
+                Buffers: shared hit=7
+  ->  Seq Scan on order_outbox  (cost=0.00..15.12 rows=512 width=9) (actual time=0.003..0.022 rows=512.00 loops=1)
+        Buffers: shared hit=10
+Planning:
+  Buffers: shared hit=166
+Planning Time: 0.303 ms
+Execution Time: 0.089 ms
+
+Run 2
+Aggregate  (cost=31.94..31.95 rows=1 width=32) (actual time=0.067..0.067 rows=1.00 loops=1)
+  Buffers: shared hit=17
+  InitPlan 1
+    ->  Aggregate  (cost=9.12..9.13 rows=1 width=8) (actual time=0.015..0.015 rows=1.00 loops=1)
+          Buffers: shared hit=7
+          ->  Seq Scan on receipts  (cost=0.00..8.70 rows=170 width=0) (actual time=0.003..0.012 rows=170.00 loops=1)
+                Buffers: shared hit=7
+  ->  Seq Scan on order_outbox  (cost=0.00..15.12 rows=512 width=9) (actual time=0.004..0.022 rows=512.00 loops=1)
+        Buffers: shared hit=10
+Planning:
+  Buffers: shared hit=166
+Planning Time: 0.316 ms
+Execution Time: 0.089 ms
+
+Run 3
+Aggregate  (cost=31.94..31.95 rows=1 width=32) (actual time=0.064..0.064 rows=1.00 loops=1)
+  Buffers: shared hit=17
+  InitPlan 1
+    ->  Aggregate  (cost=9.12..9.13 rows=1 width=8) (actual time=0.014..0.014 rows=1.00 loops=1)
+          Buffers: shared hit=7
+          ->  Seq Scan on receipts  (cost=0.00..8.70 rows=170 width=0) (actual time=0.003..0.011 rows=170.00 loops=1)
+                Buffers: shared hit=7
+  ->  Seq Scan on order_outbox  (cost=0.00..15.12 rows=512 width=9) (actual time=0.003..0.022 rows=512.00 loops=1)
+        Buffers: shared hit=10
+Planning:
+  Buffers: shared hit=166
+Planning Time: 0.277 ms
+Execution Time: 0.085 ms

@@ -1,0 +1,44 @@
+W6 · Initialize seller stock
+
+BEGIN;
+DELETE FROM inventory WHERE product_id=1;
+PREPARE sample AS
+INSERT INTO inventory(product_id,quantity) VALUES($1,$2);
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1,10);
+ROLLBACK;
+
+Run 1
+Insert on inventory  (cost=0.00..0.02 rows=0 width=0) (actual time=0.047..0.048 rows=0.00 loops=1)
+  Buffers: shared hit=28
+  ->  Result  (cost=0.00..0.02 rows=1 width=36) (actual time=0.013..0.013 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=12
+Planning Time: 0.028 ms
+Trigger for constraint inventory_product_id_fkey: time=0.198 calls=1
+Trigger market_inventory_change: time=0.926 calls=1
+Execution Time: 1.175 ms
+
+Run 2
+Insert on inventory  (cost=0.00..0.02 rows=0 width=0) (actual time=0.043..0.043 rows=0.00 loops=1)
+  Buffers: shared hit=27
+  ->  Result  (cost=0.00..0.02 rows=1 width=36) (actual time=0.011..0.012 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=12
+Planning Time: 0.022 ms
+Trigger for constraint inventory_product_id_fkey: time=0.167 calls=1
+Trigger market_inventory_change: time=0.943 calls=1
+Execution Time: 1.157 ms
+
+Run 3
+Insert on inventory  (cost=0.00..0.02 rows=0 width=0) (actual time=0.047..0.047 rows=0.00 loops=1)
+  Buffers: shared hit=27
+  ->  Result  (cost=0.00..0.02 rows=1 width=36) (actual time=0.012..0.012 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=12
+Planning Time: 0.022 ms
+Trigger for constraint inventory_product_id_fkey: time=0.163 calls=1
+Trigger market_inventory_change: time=0.869 calls=1
+Execution Time: 1.083 ms

@@ -1,0 +1,55 @@
+W35 · Deduct available stock
+
+BEGIN;
+
+PREPARE sample AS
+UPDATE inventory
+         SET quantity = quantity - $2,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE product_id = $1
+           AND quantity >= $2
+         RETURNING quantity;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1,1);
+ROLLBACK;
+
+Run 1
+Update on inventory  (cost=0.28..8.30 rows=1 width=18) (actual time=0.069..0.070 rows=1.00 loops=1)
+  Buffers: shared hit=20
+  ->  Index Scan using inventory_product_id_key on inventory  (cost=0.28..8.30 rows=1 width=18) (actual time=0.006..0.006 rows=1.00 loops=1)
+        Index Cond: (product_id = '1'::bigint)
+        Filter: (quantity >= 1)
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=86
+Planning Time: 0.164 ms
+Trigger market_inventory_change: time=0.940 calls=1
+Execution Time: 1.043 ms
+
+Run 2
+Update on inventory  (cost=0.28..8.30 rows=1 width=18) (actual time=0.069..0.070 rows=1.00 loops=1)
+  Buffers: shared hit=23
+  ->  Index Scan using inventory_product_id_key on inventory  (cost=0.28..8.30 rows=1 width=18) (actual time=0.010..0.011 rows=1.00 loops=1)
+        Index Cond: (product_id = '1'::bigint)
+        Filter: (quantity >= 1)
+        Index Searches: 1
+        Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=86
+Planning Time: 0.178 ms
+Trigger market_inventory_change: time=1.081 calls=1
+Execution Time: 1.187 ms
+
+Run 3
+Update on inventory  (cost=0.28..8.30 rows=1 width=18) (actual time=0.071..0.072 rows=1.00 loops=1)
+  Buffers: shared hit=23
+  ->  Index Scan using inventory_product_id_key on inventory  (cost=0.28..8.30 rows=1 width=18) (actual time=0.010..0.011 rows=1.00 loops=1)
+        Index Cond: (product_id = '1'::bigint)
+        Filter: (quantity >= 1)
+        Index Searches: 1
+        Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=86
+Planning Time: 0.185 ms
+Trigger market_inventory_change: time=1.092 calls=1
+Execution Time: 1.198 ms

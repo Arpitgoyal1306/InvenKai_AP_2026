@@ -1,0 +1,51 @@
+W18 · Create sample product
+
+BEGIN;
+
+PREPARE sample AS
+INSERT INTO products(store_id,category_id,name,description,photo,price,sku,low_stock_threshold)
+          SELECT $1,id,$3,$4,$5,$6,$7,4 FROM categories WHERE name=$2 RETURNING id;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1,'Category 1','Sample product','Description','',10,'SAMPLE-SKU');
+ROLLBACK;
+
+Run 1
+Insert on products  (cost=0.00..1.21 rows=1 width=769) (actual time=0.109..0.110 rows=1.00 loops=1)
+  Buffers: shared hit=78
+  ->  Seq Scan on categories  (cost=0.00..1.21 rows=1 width=769) (actual time=0.019..0.020 rows=1.00 loops=1)
+        Filter: ((name)::text = 'Category 1'::text)
+        Rows Removed by Filter: 15
+        Buffers: shared hit=16
+Planning:
+  Buffers: shared hit=104
+Planning Time: 0.208 ms
+Trigger for constraint products_category_id_fkey: time=0.063 calls=1
+Trigger for constraint products_store_id_fkey: time=0.112 calls=1
+Execution Time: 0.297 ms
+
+Run 2
+Insert on products  (cost=0.00..1.21 rows=1 width=769) (actual time=0.104..0.105 rows=1.00 loops=1)
+  Buffers: shared hit=79
+  ->  Seq Scan on categories  (cost=0.00..1.21 rows=1 width=769) (actual time=0.019..0.020 rows=1.00 loops=1)
+        Filter: ((name)::text = 'Category 1'::text)
+        Rows Removed by Filter: 15
+        Buffers: shared hit=16
+Planning:
+  Buffers: shared hit=104
+Planning Time: 0.203 ms
+Trigger for constraint products_category_id_fkey: time=0.075 calls=1
+Trigger for constraint products_store_id_fkey: time=0.122 calls=1
+Execution Time: 0.313 ms
+
+Run 3
+Insert on products  (cost=0.00..1.21 rows=1 width=769) (actual time=0.103..0.104 rows=1.00 loops=1)
+  Buffers: shared hit=79
+  ->  Seq Scan on categories  (cost=0.00..1.21 rows=1 width=769) (actual time=0.017..0.018 rows=1.00 loops=1)
+        Filter: ((name)::text = 'Category 1'::text)
+        Rows Removed by Filter: 15
+        Buffers: shared hit=16
+Planning:
+  Buffers: shared hit=104
+Planning Time: 0.188 ms
+Trigger for constraint products_category_id_fkey: time=0.063 calls=1
+Trigger for constraint products_store_id_fkey: time=0.110 calls=1
+Execution Time: 0.288 ms

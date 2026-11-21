@@ -1,0 +1,47 @@
+W7 · Record starting seller stock
+
+BEGIN;
+
+PREPARE sample AS
+INSERT INTO inventory_transactions(product_id,performed_by,transaction_type,quantity,quantity_before,quantity_after) VALUES($1,$2,'increase',$3,0,$3);
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1,1,10);
+ROLLBACK;
+
+Run 1
+Insert on inventory_transactions  (cost=0.00..0.01 rows=0 width=0) (actual time=0.147..0.147 rows=0.00 loops=1)
+  Buffers: shared hit=114
+  ->  Result  (cost=0.00..0.01 rows=1 width=90) (actual time=0.020..0.020 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=11
+Planning Time: 0.042 ms
+Trigger for constraint fk_inventory_transactions_order: time=0.026 calls=1
+Trigger for constraint inventory_transactions_performed_by_fkey: time=0.187 calls=1
+Trigger for constraint inventory_transactions_product_id_fkey: time=0.111 calls=1
+Execution Time: 0.480 ms
+
+Run 2
+Insert on inventory_transactions  (cost=0.00..0.01 rows=0 width=0) (actual time=0.124..0.124 rows=0.00 loops=1)
+  Buffers: shared hit=113
+  ->  Result  (cost=0.00..0.01 rows=1 width=90) (actual time=0.014..0.014 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=11
+Planning Time: 0.040 ms
+Trigger for constraint fk_inventory_transactions_order: time=0.023 calls=1
+Trigger for constraint inventory_transactions_performed_by_fkey: time=0.179 calls=1
+Trigger for constraint inventory_transactions_product_id_fkey: time=0.108 calls=1
+Execution Time: 0.442 ms
+
+Run 3
+Insert on inventory_transactions  (cost=0.00..0.01 rows=0 width=0) (actual time=0.129..0.130 rows=0.00 loops=1)
+  Buffers: shared hit=113
+  ->  Result  (cost=0.00..0.01 rows=1 width=90) (actual time=0.014..0.014 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=11
+Planning Time: 0.041 ms
+Trigger for constraint fk_inventory_transactions_order: time=0.029 calls=1
+Trigger for constraint inventory_transactions_performed_by_fkey: time=0.188 calls=1
+Trigger for constraint inventory_transactions_product_id_fkey: time=0.145 calls=1
+Execution Time: 0.500 ms

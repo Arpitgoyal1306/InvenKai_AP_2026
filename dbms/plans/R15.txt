@@ -1,0 +1,38 @@
+R15 · Slug claimed by another owner
+
+BEGIN;
+
+PREPARE sample AS
+SELECT 1 FROM stores WHERE slug=$1 AND owner_id<>$2;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample('shop-1',2);
+ROLLBACK;
+
+Run 1
+Seq Scan on stores  (cost=0.00..1.48 rows=1 width=4) (actual time=0.004..0.005 rows=1.00 loops=1)
+  Filter: ((owner_id <> '2'::bigint) AND ((slug)::text = 'shop-1'::text))
+  Rows Removed by Filter: 31
+  Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=103
+Planning Time: 0.206 ms
+Execution Time: 0.012 ms
+
+Run 2
+Seq Scan on stores  (cost=0.00..1.48 rows=1 width=4) (actual time=0.004..0.005 rows=1.00 loops=1)
+  Filter: ((owner_id <> '2'::bigint) AND ((slug)::text = 'shop-1'::text))
+  Rows Removed by Filter: 31
+  Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=103
+Planning Time: 0.187 ms
+Execution Time: 0.012 ms
+
+Run 3
+Seq Scan on stores  (cost=0.00..1.48 rows=1 width=4) (actual time=0.003..0.004 rows=1.00 loops=1)
+  Filter: ((owner_id <> '2'::bigint) AND ((slug)::text = 'shop-1'::text))
+  Rows Removed by Filter: 31
+  Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=103
+Planning Time: 0.166 ms
+Execution Time: 0.010 ms

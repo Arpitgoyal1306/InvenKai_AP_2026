@@ -1,0 +1,118 @@
+R60 · Daily warehouse movements
+
+BEGIN;
+
+PREPARE sample AS
+SELECT
+        TO_CHAR(
+            (t.created_at AT TIME ZONE 'UTC')::date,
+            'YYYY-MM-DD'
+        ) AS date,
+        COALESCE(
+          SUM(t.quantity) FILTER (
+            WHERE t.transaction_type = 'increase'
+          ),
+          0
+        ) AS stock_added,
+        COALESCE(
+          SUM(t.quantity) FILTER (
+            WHERE t.transaction_type = 'decrease'
+          ),
+          0
+        ) AS stock_removed
+      FROM inventory_transactions t JOIN products p ON p.id = t.product_id
+      WHERE p.store_id IS NULL AND t.created_at >= (
+        $1::date::timestamp AT TIME ZONE 'UTC'
+      )
+      AND t.created_at < (
+        ($2::date + INTERVAL '1 day')::timestamp
+        AT TIME ZONE 'UTC'
+      )
+      GROUP BY (t.created_at AT TIME ZONE 'UTC')::date
+      ORDER BY date ASC;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(CURRENT_DATE-1,CURRENT_DATE);
+ROLLBACK;
+
+Run 1
+Sort  (cost=93.40..93.41 rows=1 width=52) (actual time=1.550..1.550 rows=1.00 loops=1)
+  Sort Key: (to_char(((((t.created_at AT TIME ZONE 'UTC'::text))::date))::timestamp with time zone, 'YYYY-MM-DD'::text))
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=35
+  ->  HashAggregate  (cost=93.37..93.39 rows=1 width=52) (actual time=1.542..1.542 rows=1.00 loops=1)
+        Group Key: ((t.created_at AT TIME ZONE 'UTC'::text))::date
+        Batches: 1  Memory Usage: 32kB
+        Buffers: shared hit=32
+        ->  Hash Join  (cost=28.55..88.43 rows=395 width=25) (actual time=0.044..0.208 rows=341.00 loops=1)
+              Hash Cond: (t.product_id = p.id)
+              Buffers: shared hit=32
+              ->  Seq Scan on inventory_transactions t  (cost=0.00..52.70 rows=1980 width=29) (actual time=0.003..0.093 rows=1980.00 loops=1)
+                    Filter: ((created_at >= '2026-11-21 05:30:00+05:30'::timestamp with time zone) AND (created_at < '2026-11-23 05:30:00+05:30'::timestamp with time zone))
+                    Buffers: shared hit=23
+              ->  Hash  (cost=23.43..23.43 rows=409 width=8) (actual time=0.036..0.036 rows=409.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 24kB
+                    Buffers: shared hit=9
+                    ->  Index Only Scan using market_products on products p  (cost=0.28..23.43 rows=409 width=8) (actual time=0.004..0.022 rows=409.00 loops=1)
+                          Index Cond: (store_id IS NULL)
+                          Heap Fetches: 20
+                          Index Searches: 1
+                          Buffers: shared hit=9
+Planning:
+  Buffers: shared hit=348
+Planning Time: 0.430 ms
+Execution Time: 1.575 ms
+
+Run 2
+Sort  (cost=93.40..93.41 rows=1 width=52) (actual time=1.744..1.745 rows=1.00 loops=1)
+  Sort Key: (to_char(((((t.created_at AT TIME ZONE 'UTC'::text))::date))::timestamp with time zone, 'YYYY-MM-DD'::text))
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=35
+  ->  HashAggregate  (cost=93.37..93.39 rows=1 width=52) (actual time=1.737..1.737 rows=1.00 loops=1)
+        Group Key: ((t.created_at AT TIME ZONE 'UTC'::text))::date
+        Batches: 1  Memory Usage: 32kB
+        Buffers: shared hit=32
+        ->  Hash Join  (cost=28.55..88.43 rows=395 width=25) (actual time=0.045..0.211 rows=341.00 loops=1)
+              Hash Cond: (t.product_id = p.id)
+              Buffers: shared hit=32
+              ->  Seq Scan on inventory_transactions t  (cost=0.00..52.70 rows=1980 width=29) (actual time=0.003..0.094 rows=1980.00 loops=1)
+                    Filter: ((created_at >= '2026-11-21 05:30:00+05:30'::timestamp with time zone) AND (created_at < '2026-11-23 05:30:00+05:30'::timestamp with time zone))
+                    Buffers: shared hit=23
+              ->  Hash  (cost=23.43..23.43 rows=409 width=8) (actual time=0.038..0.039 rows=409.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 24kB
+                    Buffers: shared hit=9
+                    ->  Index Only Scan using market_products on products p  (cost=0.28..23.43 rows=409 width=8) (actual time=0.004..0.024 rows=409.00 loops=1)
+                          Index Cond: (store_id IS NULL)
+                          Heap Fetches: 20
+                          Index Searches: 1
+                          Buffers: shared hit=9
+Planning:
+  Buffers: shared hit=348
+Planning Time: 0.406 ms
+Execution Time: 1.770 ms
+
+Run 3
+Sort  (cost=93.40..93.41 rows=1 width=52) (actual time=1.550..1.551 rows=1.00 loops=1)
+  Sort Key: (to_char(((((t.created_at AT TIME ZONE 'UTC'::text))::date))::timestamp with time zone, 'YYYY-MM-DD'::text))
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=35
+  ->  HashAggregate  (cost=93.37..93.39 rows=1 width=52) (actual time=1.543..1.544 rows=1.00 loops=1)
+        Group Key: ((t.created_at AT TIME ZONE 'UTC'::text))::date
+        Batches: 1  Memory Usage: 32kB
+        Buffers: shared hit=32
+        ->  Hash Join  (cost=28.55..88.43 rows=395 width=25) (actual time=0.042..0.208 rows=341.00 loops=1)
+              Hash Cond: (t.product_id = p.id)
+              Buffers: shared hit=32
+              ->  Seq Scan on inventory_transactions t  (cost=0.00..52.70 rows=1980 width=29) (actual time=0.002..0.094 rows=1980.00 loops=1)
+                    Filter: ((created_at >= '2026-11-21 05:30:00+05:30'::timestamp with time zone) AND (created_at < '2026-11-23 05:30:00+05:30'::timestamp with time zone))
+                    Buffers: shared hit=23
+              ->  Hash  (cost=23.43..23.43 rows=409 width=8) (actual time=0.036..0.036 rows=409.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 24kB
+                    Buffers: shared hit=9
+                    ->  Index Only Scan using market_products on products p  (cost=0.28..23.43 rows=409 width=8) (actual time=0.004..0.023 rows=409.00 loops=1)
+                          Index Cond: (store_id IS NULL)
+                          Heap Fetches: 20
+                          Index Searches: 1
+                          Buffers: shared hit=9
+Planning:
+  Buffers: shared hit=348
+Planning Time: 0.413 ms
+Execution Time: 1.576 ms

@@ -1,0 +1,44 @@
+W20 · Refresh Google avatar
+
+BEGIN;
+
+PREPARE sample AS
+UPDATE users SET avatar_url=COALESCE($2,avatar_url) WHERE google_subject=$1 RETURNING id,name,email,role,avatar_url;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample('google-2','https://example.test/avatar');
+ROLLBACK;
+
+Run 1
+Update on users  (cost=0.00..7.20 rows=1 width=38) (actual time=0.063..0.071 rows=1.00 loops=1)
+  Buffers: shared hit=25
+  ->  Seq Scan on users  (cost=0.00..7.20 rows=1 width=38) (actual time=0.004..0.013 rows=1.00 loops=1)
+        Filter: (google_subject = 'google-2'::text)
+        Rows Removed by Filter: 255
+        Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=96
+Planning Time: 0.160 ms
+Execution Time: 0.101 ms
+
+Run 2
+Update on users  (cost=0.00..7.20 rows=1 width=38) (actual time=0.060..0.069 rows=1.00 loops=1)
+  Buffers: shared hit=28
+  ->  Seq Scan on users  (cost=0.00..7.20 rows=1 width=38) (actual time=0.007..0.015 rows=1.00 loops=1)
+        Filter: (google_subject = 'google-2'::text)
+        Rows Removed by Filter: 255
+        Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=96
+Planning Time: 0.154 ms
+Execution Time: 0.096 ms
+
+Run 3
+Update on users  (cost=0.00..7.20 rows=1 width=38) (actual time=0.068..0.077 rows=1.00 loops=1)
+  Buffers: shared hit=28
+  ->  Seq Scan on users  (cost=0.00..7.20 rows=1 width=38) (actual time=0.009..0.018 rows=1.00 loops=1)
+        Filter: (google_subject = 'google-2'::text)
+        Rows Removed by Filter: 255
+        Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=96
+Planning Time: 0.174 ms
+Execution Time: 0.108 ms

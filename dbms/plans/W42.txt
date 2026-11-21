@@ -1,0 +1,45 @@
+W42 · Create supplier
+
+BEGIN;
+
+PREPARE sample AS
+INSERT INTO suppliers (
+      name,
+      contact_name,
+      email,
+      phone
+    )
+    VALUES ($1, $2, $3, $4)
+    RETURNING *;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample('New supplier','Contact','supplier@example.test','1234567890');
+ROLLBACK;
+
+Run 1
+Insert on suppliers  (cost=0.00..0.02 rows=1 width=1255) (actual time=0.104..0.105 rows=1.00 loops=1)
+  Buffers: shared hit=54
+  ->  Result  (cost=0.00..0.02 rows=1 width=1255) (actual time=0.016..0.016 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.051 ms
+Execution Time: 0.116 ms
+
+Run 2
+Insert on suppliers  (cost=0.00..0.02 rows=1 width=1255) (actual time=0.071..0.071 rows=1.00 loops=1)
+  Buffers: shared hit=54
+  ->  Result  (cost=0.00..0.02 rows=1 width=1255) (actual time=0.018..0.018 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.041 ms
+Execution Time: 0.080 ms
+
+Run 3
+Insert on suppliers  (cost=0.00..0.02 rows=1 width=1255) (actual time=0.069..0.069 rows=1.00 loops=1)
+  Buffers: shared hit=54
+  ->  Result  (cost=0.00..0.02 rows=1 width=1255) (actual time=0.013..0.013 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.039 ms
+Execution Time: 0.078 ms

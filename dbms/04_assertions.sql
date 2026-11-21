@@ -15,12 +15,12 @@ DECLARE
     gen_mode CHAR(1);
     pred TEXT;
 BEGIN
-    -- 1. All 11 expected tables exist (and no unexpected tables)
+    -- 1. All 12 expected tables exist (and no unexpected tables)
     FOR r IN
         SELECT unnest(ARRAY[
             'categories', 'users', 'suppliers', 'products', 'inventory',
             'orders', 'inventory_transactions', 'supplier_products',
-            'order_items', 'order_outbox', 'receipts'
+            'order_items', 'order_outbox', 'receipts', 'stores'
         ]) AS tbl
     LOOP
         IF to_regclass(format('public.%I', r.tbl)) IS NULL THEN
@@ -31,17 +31,31 @@ BEGIN
     SELECT COUNT(*) INTO actual_count
     FROM information_schema.tables
     WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
-    IF actual_count <> 11 THEN
-        RAISE EXCEPTION 'Expected 11 tables in public schema, found %', actual_count;
+    IF actual_count <> 12 THEN
+        RAISE EXCEPTION 'Expected 12 tables in public schema, found %', actual_count;
     END IF;
 
     -- 2. Critical column types and nullability
     FOR r IN
         SELECT * FROM (VALUES
+            ('users', 'password_hash', 'character varying', 'YES'),
+            ('users', 'google_subject', 'text', 'YES'),
+            ('users', 'avatar_url', 'text', 'YES'),
+            ('users', 'phone', 'character varying', 'YES'),
+            ('users', 'pickup_address', 'jsonb', 'YES'),
+            ('orders', 'store_id', 'bigint', 'YES'),
+            ('orders', 'pickup_snapshot', 'text', 'YES'),
+            ('orders', 'buyer_details', 'jsonb', 'YES'),
+            ('orders', 'checkout_key', 'character varying', 'YES'),
+            ('orders', 'checkout_fingerprint', 'text', 'YES'),
+            ('products', 'store_id', 'bigint', 'YES'),
+            ('products', 'archived', 'boolean', 'NO'),
+            ('products', 'photo', 'text', 'NO'),
+            ('products', 'deleted_at', 'timestamp with time zone', 'YES'),
             ('products', 'description', 'text', 'YES'),
             ('products', 'low_stock_threshold', 'integer', 'YES'),
-            ('orders', 'created_at', 'timestamp without time zone', 'NO'),
-            ('orders', 'updated_at', 'timestamp without time zone', 'NO'),
+            ('orders', 'created_at', 'timestamp with time zone', 'NO'),
+            ('orders', 'updated_at', 'timestamp with time zone', 'NO'),
             ('inventory_transactions', 'performed_by', 'bigint', 'YES'),
             ('inventory_transactions', 'order_id', 'bigint', 'YES'),
             ('order_items', 'sku', 'character varying', 'YES'),
@@ -63,6 +77,17 @@ BEGIN
         END IF;
     END LOOP;
 
+    IF NOT EXISTS (SELECT FROM pg_index WHERE indexrelid='orders_checkout_key'::regclass
+        AND indisunique AND pg_get_indexdef(indexrelid) LIKE '%(user_id, checkout_key)%'
+        AND pg_get_expr(indpred,indrelid) = '(checkout_key IS NOT NULL)') THEN
+        RAISE EXCEPTION 'Invalid checkout retry index';
+    END IF;
+    IF (SELECT count(*) FROM pg_trigger WHERE tgfoid='notify_market_inventory()'::regprocedure
+        AND (tgrelid::regclass::text,tgname::text) IN (('products','market_product_change'),
+        ('stores','market_store_change'),('inventory','market_inventory_change'))) <> 3 THEN
+        RAISE EXCEPTION 'Missing marketplace notification triggers';
+    END IF;
+
     -- 3. Generated column order_items.line_total is STORED
     SELECT a.attgenerated INTO gen_mode
     FROM pg_attribute a
@@ -72,10 +97,10 @@ BEGIN
         RAISE EXCEPTION 'order_items.line_total attgenerated=%, expected ''s'' (STORED)', gen_mode;
     END IF;
 
-    -- 4. Primary keys on all 11 tables
+    -- 4. Primary keys on all 12 tables
     FOR r IN
         SELECT * FROM (VALUES
-            ('categories', ARRAY['id']), ('users', ARRAY['id']),
+            ('stores', ARRAY['id']), ('categories', ARRAY['id']), ('users', ARRAY['id']),
             ('suppliers', ARRAY['id']), ('products', ARRAY['id']),
             ('inventory', ARRAY['id']), ('orders', ARRAY['id']),
             ('inventory_transactions', ARRAY['id']),
@@ -94,10 +119,11 @@ BEGIN
         END IF;
     END LOOP;
 
-    -- 5. All 13 foreign keys and ON DELETE rules
+    -- 5. All 16 foreign keys and ON DELETE rules
     FOR r IN
         SELECT * FROM (VALUES
-            ('products', 'category_id', 'categories', 'r'),
+            ('stores', 'owner_id', 'users', 'a'), ('orders', 'store_id', 'stores', 'a'),
+            ('products', 'store_id', 'stores', 'a'), ('products', 'category_id', 'categories', 'r'),
             ('inventory', 'product_id', 'products', 'r'),
             ('orders', 'user_id', 'users', 'r'),
             ('inventory_transactions', 'product_id', 'products', 'r'),
@@ -126,6 +152,9 @@ BEGIN
     -- 6. Unique and CHECK constraints (migration-aligned names)
     FOR r IN
         SELECT * FROM (VALUES
+            ('stores', 'stores_owner_id_key', 'u'), ('stores', 'stores_slug_key', 'u'),
+            ('users', 'users_google_subject_key', 'u'), ('users', 'users_sign_in_method', 'c'),
+            ('products', 'products_deleted_seller_archived', 'c'),
             ('categories', 'categories_name_key', 'u'),
             ('users', 'users_email_key', 'u'),
             ('products', 'products_sku_key', 'u'),
@@ -140,10 +169,10 @@ BEGIN
             ('inventory', 'inventory_quantity_check', 'c'),
             ('orders', 'orders_status_check', 'c'),
             ('orders', 'orders_total_amount_nonnegative', 'c'),
-            ('inventory_transactions', 'inventory_transactions_type_check', 'c'),
+            ('inventory_transactions', 'inventory_transactions_transaction_type_check', 'c'),
             ('inventory_transactions', 'inventory_transactions_quantity_check', 'c'),
-            ('inventory_transactions', 'inventory_transactions_before_check', 'c'),
-            ('inventory_transactions', 'inventory_transactions_after_check', 'c'),
+            ('inventory_transactions', 'inventory_transactions_quantity_before_check', 'c'),
+            ('inventory_transactions', 'inventory_transactions_quantity_after_check', 'c'),
             ('inventory_transactions', 'valid_transaction_quantity', 'c'),
             ('inventory_transactions', 'inventory_order_decrease_only', 'c'),
             ('order_items', 'order_items_quantity_positive', 'c'),
@@ -169,8 +198,8 @@ BEGIN
             'idx_inventory_transactions_product_created',
             'idx_inventory_transactions_order',
             'idx_orders_user_created',
-            'supplier_products_product_id_idx',
-            'idx_order_items_product',
+            'supplier_products_product_id_index',
+            'market_products', 'market_orders', 'orders_checkout_key', 'idx_order_items_product',
             'idx_order_outbox_pending',
             'idx_order_outbox_expired_leases'
         ]) AS idx_name

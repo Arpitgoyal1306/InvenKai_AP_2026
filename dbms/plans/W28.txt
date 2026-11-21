@@ -1,0 +1,53 @@
+W28 · Mark event dispatched
+
+BEGIN;
+
+PREPARE sample AS
+UPDATE order_outbox
+       SET status = 'dispatched',
+           dispatched_at = CURRENT_TIMESTAMP,
+           locked_until = NULL,
+           claim_token = NULL,
+           last_error = NULL,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+         AND status = 'processing'
+         AND claim_token = $2::uuid;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(2,'00000000-0000-4000-8000-000000000002');
+ROLLBACK;
+
+Run 1
+Update on order_outbox  (cost=0.12..8.15 rows=0 width=0) (actual time=0.075..0.075 rows=0.00 loops=1)
+  Buffers: shared hit=30
+  ->  Index Scan using idx_order_outbox_expired_leases on order_outbox  (cost=0.12..8.15 rows=1 width=136) (actual time=0.011..0.011 rows=1.00 loops=1)
+        Filter: ((id = '2'::bigint) AND ((status)::text = 'processing'::text) AND (claim_token = '00000000-0000-4000-8000-000000000002'::uuid))
+        Index Searches: 1
+        Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=154
+Planning Time: 0.231 ms
+Execution Time: 0.107 ms
+
+Run 2
+Update on order_outbox  (cost=0.12..8.15 rows=0 width=0) (actual time=0.070..0.070 rows=0.00 loops=1)
+  Buffers: shared hit=27
+  ->  Index Scan using idx_order_outbox_expired_leases on order_outbox  (cost=0.12..8.15 rows=1 width=136) (actual time=0.007..0.008 rows=1.00 loops=1)
+        Filter: ((id = '2'::bigint) AND ((status)::text = 'processing'::text) AND (claim_token = '00000000-0000-4000-8000-000000000002'::uuid))
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=154
+Planning Time: 0.223 ms
+Execution Time: 0.099 ms
+
+Run 3
+Update on order_outbox  (cost=0.12..8.15 rows=0 width=0) (actual time=0.066..0.066 rows=0.00 loops=1)
+  Buffers: shared hit=27
+  ->  Index Scan using idx_order_outbox_expired_leases on order_outbox  (cost=0.12..8.15 rows=1 width=136) (actual time=0.007..0.007 rows=1.00 loops=1)
+        Filter: ((id = '2'::bigint) AND ((status)::text = 'processing'::text) AND (claim_token = '00000000-0000-4000-8000-000000000002'::uuid))
+        Index Searches: 1
+        Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=154
+Planning Time: 0.210 ms
+Execution Time: 0.095 ms
