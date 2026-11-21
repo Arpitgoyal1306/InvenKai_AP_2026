@@ -1,0 +1,129 @@
+R57 · Stock by category
+
+BEGIN;
+
+PREPARE sample AS
+SELECT
+      c.id AS category_id,
+      c.name AS category_name,
+      COUNT(DISTINCT p.id)::INTEGER AS product_count,
+      COUNT(DISTINCT i.product_id)::INTEGER AS products_with_inventory,
+      COALESCE(SUM(i.quantity), 0)::BIGINT AS total_stock_quantity
+    FROM categories c
+    LEFT JOIN products p
+      ON p.category_id = c.id AND p.store_id IS NULL AND NOT p.archived
+    LEFT JOIN inventory i
+      ON i.product_id = p.id GROUP BY c.id, c.name ORDER BY c.name ASC;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample;
+ROLLBACK;
+
+Run 1
+Sort  (cost=124.70..124.74 rows=16 width=35) (actual time=0.383..0.384 rows=16.00 loops=1)
+  Sort Key: c.name
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=56
+  ->  GroupAggregate  (cost=119.33..124.38 rows=16 width=35) (actual time=0.340..0.373 rows=16.00 loops=1)
+        Group Key: c.id
+        Buffers: shared hit=53
+        ->  Sort  (cost=119.33..120.29 rows=385 width=39) (actual time=0.330..0.338 rows=385.00 loops=1)
+              Sort Key: c.id, p.id
+              Sort Method: quicksort  Memory: 49kB
+              Buffers: shared hit=53
+              ->  Hash Right Join  (cost=57.65..102.80 rows=385 width=39) (actual time=0.118..0.268 rows=385.00 loops=1)
+                    Hash Cond: (p.category_id = c.id)
+                    Buffers: shared hit=50
+                    ->  Hash Right Join  (cost=56.29..100.16 rows=385 width=28) (actual time=0.110..0.236 rows=385.00 loops=1)
+                          Hash Cond: (i.product_id = p.id)
+                          Buffers: shared hit=49
+                          ->  Seq Scan on inventory i  (cost=0.00..38.48 rows=2048 width=12) (actual time=0.001..0.050 rows=2048.00 loops=1)
+                                Buffers: shared hit=18
+                          ->  Hash  (cost=51.48..51.48 rows=385 width=16) (actual time=0.105..0.105 rows=385.00 loops=1)
+                                Buckets: 1024  Batches: 1  Memory Usage: 27kB
+                                Buffers: shared hit=31
+                                ->  Seq Scan on products p  (cost=0.00..51.48 rows=385 width=16) (actual time=0.002..0.091 rows=385.00 loops=1)
+                                      Filter: ((store_id IS NULL) AND (NOT archived))
+                                      Rows Removed by Filter: 1663
+                                      Buffers: shared hit=31
+                    ->  Hash  (cost=1.16..1.16 rows=16 width=19) (actual time=0.006..0.006 rows=16.00 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                          Buffers: shared hit=1
+                          ->  Seq Scan on categories c  (cost=0.00..1.16 rows=16 width=19) (actual time=0.003..0.003 rows=16.00 loops=1)
+                                Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=273
+Planning Time: 0.449 ms
+Execution Time: 0.408 ms
+
+Run 2
+Sort  (cost=124.70..124.74 rows=16 width=35) (actual time=0.376..0.377 rows=16.00 loops=1)
+  Sort Key: c.name
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=56
+  ->  GroupAggregate  (cost=119.33..124.38 rows=16 width=35) (actual time=0.334..0.366 rows=16.00 loops=1)
+        Group Key: c.id
+        Buffers: shared hit=53
+        ->  Sort  (cost=119.33..120.29 rows=385 width=39) (actual time=0.327..0.333 rows=385.00 loops=1)
+              Sort Key: c.id, p.id
+              Sort Method: quicksort  Memory: 49kB
+              Buffers: shared hit=53
+              ->  Hash Right Join  (cost=57.65..102.80 rows=385 width=39) (actual time=0.121..0.265 rows=385.00 loops=1)
+                    Hash Cond: (p.category_id = c.id)
+                    Buffers: shared hit=50
+                    ->  Hash Right Join  (cost=56.29..100.16 rows=385 width=28) (actual time=0.112..0.232 rows=385.00 loops=1)
+                          Hash Cond: (i.product_id = p.id)
+                          Buffers: shared hit=49
+                          ->  Seq Scan on inventory i  (cost=0.00..38.48 rows=2048 width=12) (actual time=0.002..0.046 rows=2048.00 loops=1)
+                                Buffers: shared hit=18
+                          ->  Hash  (cost=51.48..51.48 rows=385 width=16) (actual time=0.106..0.106 rows=385.00 loops=1)
+                                Buckets: 1024  Batches: 1  Memory Usage: 27kB
+                                Buffers: shared hit=31
+                                ->  Seq Scan on products p  (cost=0.00..51.48 rows=385 width=16) (actual time=0.002..0.090 rows=385.00 loops=1)
+                                      Filter: ((store_id IS NULL) AND (NOT archived))
+                                      Rows Removed by Filter: 1663
+                                      Buffers: shared hit=31
+                    ->  Hash  (cost=1.16..1.16 rows=16 width=19) (actual time=0.006..0.006 rows=16.00 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                          Buffers: shared hit=1
+                          ->  Seq Scan on categories c  (cost=0.00..1.16 rows=16 width=19) (actual time=0.003..0.004 rows=16.00 loops=1)
+                                Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=273
+Planning Time: 0.474 ms
+Execution Time: 0.399 ms
+
+Run 3
+Sort  (cost=124.70..124.74 rows=16 width=35) (actual time=0.366..0.366 rows=16.00 loops=1)
+  Sort Key: c.name
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=56
+  ->  GroupAggregate  (cost=119.33..124.38 rows=16 width=35) (actual time=0.325..0.356 rows=16.00 loops=1)
+        Group Key: c.id
+        Buffers: shared hit=53
+        ->  Sort  (cost=119.33..120.29 rows=385 width=39) (actual time=0.317..0.324 rows=385.00 loops=1)
+              Sort Key: c.id, p.id
+              Sort Method: quicksort  Memory: 49kB
+              Buffers: shared hit=53
+              ->  Hash Right Join  (cost=57.65..102.80 rows=385 width=39) (actual time=0.115..0.256 rows=385.00 loops=1)
+                    Hash Cond: (p.category_id = c.id)
+                    Buffers: shared hit=50
+                    ->  Hash Right Join  (cost=56.29..100.16 rows=385 width=28) (actual time=0.107..0.224 rows=385.00 loops=1)
+                          Hash Cond: (i.product_id = p.id)
+                          Buffers: shared hit=49
+                          ->  Seq Scan on inventory i  (cost=0.00..38.48 rows=2048 width=12) (actual time=0.001..0.046 rows=2048.00 loops=1)
+                                Buffers: shared hit=18
+                          ->  Hash  (cost=51.48..51.48 rows=385 width=16) (actual time=0.102..0.102 rows=385.00 loops=1)
+                                Buckets: 1024  Batches: 1  Memory Usage: 27kB
+                                Buffers: shared hit=31
+                                ->  Seq Scan on products p  (cost=0.00..51.48 rows=385 width=16) (actual time=0.002..0.087 rows=385.00 loops=1)
+                                      Filter: ((store_id IS NULL) AND (NOT archived))
+                                      Rows Removed by Filter: 1663
+                                      Buffers: shared hit=31
+                    ->  Hash  (cost=1.16..1.16 rows=16 width=19) (actual time=0.005..0.005 rows=16.00 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                          Buffers: shared hit=1
+                          ->  Seq Scan on categories c  (cost=0.00..1.16 rows=16 width=19) (actual time=0.003..0.003 rows=16.00 loops=1)
+                                Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=273
+Planning Time: 0.432 ms
+Execution Time: 0.406 ms

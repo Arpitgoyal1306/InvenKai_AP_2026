@@ -1,0 +1,47 @@
+W11 · Advance fulfillment
+
+BEGIN;
+
+PREPARE sample AS
+UPDATE orders SET status=$1,updated_at=NOW() WHERE id=$2 AND store_id=$3 AND status=$4 RETURNING id, pg_notify('market_inventory', json_build_object('owner',$5::text,'public',false)::text);
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample('processing',1,1,'placed','1');
+ROLLBACK;
+
+Run 1
+Update on orders  (cost=0.27..8.30 rows=1 width=72) (actual time=0.183..0.184 rows=1.00 loops=1)
+  Buffers: shared hit=42
+  ->  Index Scan using orders_pkey on orders  (cost=0.27..8.30 rows=1 width=72) (actual time=0.010..0.010 rows=1.00 loops=1)
+        Index Cond: (id = '1'::bigint)
+        Filter: ((store_id = '1'::bigint) AND ((status)::text = 'placed'::text))
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=147
+Planning Time: 0.289 ms
+Execution Time: 0.297 ms
+
+Run 2
+Update on orders  (cost=0.27..8.30 rows=1 width=72) (actual time=0.099..0.100 rows=1.00 loops=1)
+  Buffers: shared hit=46
+  ->  Index Scan using orders_pkey on orders  (cost=0.27..8.30 rows=1 width=72) (actual time=0.010..0.010 rows=1.00 loops=1)
+        Index Cond: (id = '1'::bigint)
+        Filter: ((store_id = '1'::bigint) AND ((status)::text = 'placed'::text))
+        Index Searches: 1
+        Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=147
+Planning Time: 0.238 ms
+Execution Time: 0.141 ms
+
+Run 3
+Update on orders  (cost=0.27..8.30 rows=1 width=72) (actual time=0.094..0.095 rows=1.00 loops=1)
+  Buffers: shared hit=46
+  ->  Index Scan using orders_pkey on orders  (cost=0.27..8.30 rows=1 width=72) (actual time=0.010..0.011 rows=1.00 loops=1)
+        Index Cond: (id = '1'::bigint)
+        Filter: ((store_id = '1'::bigint) AND ((status)::text = 'placed'::text))
+        Index Searches: 1
+        Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=147
+Planning Time: 0.246 ms
+Execution Time: 0.131 ms

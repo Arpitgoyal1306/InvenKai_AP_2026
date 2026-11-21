@@ -1,0 +1,98 @@
+W13 · Link warehouse product to supplier
+
+BEGIN;
+
+PREPARE sample AS
+WITH target AS (
+         SELECT id FROM products WHERE id=$2 AND store_id IS NULL AND NOT archived FOR UPDATE
+       ), linked AS (
+         INSERT INTO supplier_products(supplier_id, product_id)
+         SELECT $1, id FROM target ON CONFLICT DO NOTHING
+       )
+       SELECT id FROM target;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(2,5);
+ROLLBACK;
+
+Run 1
+CTE Scan on target  (cost=8.32..8.34 rows=1 width=8) (actual time=0.013..0.014 rows=1.00 loops=1)
+  Storage: Memory  Maximum Storage: 17kB
+  Buffers: shared hit=4
+  CTE target
+    ->  LockRows  (cost=0.28..8.30 rows=1 width=14) (actual time=0.013..0.013 rows=1.00 loops=1)
+          Buffers: shared hit=4
+          ->  Index Scan using products_pkey on products  (cost=0.28..8.29 rows=1 width=14) (actual time=0.006..0.006 rows=1.00 loops=1)
+                Index Cond: (id = '5'::bigint)
+                Filter: ((store_id IS NULL) AND (NOT archived))
+                Index Searches: 1
+                Buffers: shared hit=3
+  CTE linked
+    ->  Insert on supplier_products  (cost=0.00..0.02 rows=0 width=0) (actual time=0.705..0.705 rows=0.00 loops=1)
+          Conflict Resolution: NOTHING
+          Tuples Inserted: 1
+          Conflicting Tuples: 0
+          Buffers: shared hit=128
+          ->  CTE Scan on target target_1  (cost=0.00..0.02 rows=1 width=16) (actual time=0.000..0.000 rows=1.00 loops=1)
+                Storage: Memory  Maximum Storage: 17kB
+Planning:
+  Buffers: shared hit=126
+Planning Time: 0.202 ms
+Trigger for constraint supplier_products_product_id_fkey: time=0.043 calls=1
+Trigger for constraint supplier_products_supplier_id_fkey: time=0.017 calls=1
+Trigger prevent_inactive_supplier_association: time=0.158 calls=1
+Execution Time: 0.795 ms
+
+Run 2
+CTE Scan on target  (cost=8.32..8.34 rows=1 width=8) (actual time=0.019..0.020 rows=1.00 loops=1)
+  Storage: Memory  Maximum Storage: 17kB
+  Buffers: shared hit=4
+  CTE target
+    ->  LockRows  (cost=0.28..8.30 rows=1 width=14) (actual time=0.018..0.018 rows=1.00 loops=1)
+          Buffers: shared hit=4
+          ->  Index Scan using products_pkey on products  (cost=0.28..8.29 rows=1 width=14) (actual time=0.007..0.007 rows=1.00 loops=1)
+                Index Cond: (id = '5'::bigint)
+                Filter: ((store_id IS NULL) AND (NOT archived))
+                Index Searches: 1
+                Buffers: shared hit=3
+  CTE linked
+    ->  Insert on supplier_products  (cost=0.00..0.02 rows=0 width=0) (actual time=0.783..0.783 rows=0.00 loops=1)
+          Conflict Resolution: NOTHING
+          Tuples Inserted: 1
+          Conflicting Tuples: 0
+          Buffers: shared hit=129
+          ->  CTE Scan on target target_1  (cost=0.00..0.02 rows=1 width=16) (actual time=0.000..0.000 rows=1.00 loops=1)
+                Storage: Memory  Maximum Storage: 17kB
+Planning:
+  Buffers: shared hit=126
+Planning Time: 0.219 ms
+Trigger for constraint supplier_products_product_id_fkey: time=0.043 calls=1
+Trigger for constraint supplier_products_supplier_id_fkey: time=0.016 calls=1
+Trigger prevent_inactive_supplier_association: time=0.170 calls=1
+Execution Time: 0.881 ms
+
+Run 3
+CTE Scan on target  (cost=8.32..8.34 rows=1 width=8) (actual time=0.014..0.015 rows=1.00 loops=1)
+  Storage: Memory  Maximum Storage: 17kB
+  Buffers: shared hit=4
+  CTE target
+    ->  LockRows  (cost=0.28..8.30 rows=1 width=14) (actual time=0.013..0.014 rows=1.00 loops=1)
+          Buffers: shared hit=4
+          ->  Index Scan using products_pkey on products  (cost=0.28..8.29 rows=1 width=14) (actual time=0.006..0.006 rows=1.00 loops=1)
+                Index Cond: (id = '5'::bigint)
+                Filter: ((store_id IS NULL) AND (NOT archived))
+                Index Searches: 1
+                Buffers: shared hit=3
+  CTE linked
+    ->  Insert on supplier_products  (cost=0.00..0.02 rows=0 width=0) (actual time=0.709..0.709 rows=0.00 loops=1)
+          Conflict Resolution: NOTHING
+          Tuples Inserted: 1
+          Conflicting Tuples: 0
+          Buffers: shared hit=129
+          ->  CTE Scan on target target_1  (cost=0.00..0.02 rows=1 width=16) (actual time=0.000..0.001 rows=1.00 loops=1)
+                Storage: Memory  Maximum Storage: 17kB
+Planning:
+  Buffers: shared hit=126
+Planning Time: 0.243 ms
+Trigger for constraint supplier_products_product_id_fkey: time=0.043 calls=1
+Trigger for constraint supplier_products_supplier_id_fkey: time=0.017 calls=1
+Trigger prevent_inactive_supplier_association: time=0.157 calls=1
+Execution Time: 0.805 ms

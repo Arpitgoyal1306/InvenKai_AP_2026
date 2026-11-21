@@ -1,0 +1,52 @@
+W43 · Edit supplier
+
+BEGIN;
+
+PREPARE sample AS
+UPDATE suppliers
+       SET name = $1,
+           contact_name = $2,
+           email = $3,
+           phone = $4,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $5
+         AND is_active = TRUE
+       RETURNING *;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample('Updated','Contact','supplier@example.test','1234567890',1);
+ROLLBACK;
+
+Run 1
+Update on suppliers  (cost=0.00..1.40 rows=1 width=1244) (actual time=0.049..0.051 rows=1.00 loops=1)
+  Buffers: shared hit=13
+  ->  Seq Scan on suppliers  (cost=0.00..1.40 rows=1 width=1244) (actual time=0.005..0.006 rows=1.00 loops=1)
+        Filter: (is_active AND (id = '1'::bigint))
+        Rows Removed by Filter: 31
+        Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=76
+Planning Time: 0.143 ms
+Execution Time: 0.082 ms
+
+Run 2
+Update on suppliers  (cost=0.00..1.40 rows=1 width=1244) (actual time=0.051..0.052 rows=1.00 loops=1)
+  Buffers: shared hit=13
+  ->  Seq Scan on suppliers  (cost=0.00..1.40 rows=1 width=1244) (actual time=0.007..0.008 rows=1.00 loops=1)
+        Filter: (is_active AND (id = '1'::bigint))
+        Rows Removed by Filter: 31
+        Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=76
+Planning Time: 0.146 ms
+Execution Time: 0.086 ms
+
+Run 3
+Update on suppliers  (cost=0.00..1.40 rows=1 width=1244) (actual time=0.054..0.055 rows=1.00 loops=1)
+  Buffers: shared hit=13
+  ->  Seq Scan on suppliers  (cost=0.00..1.40 rows=1 width=1244) (actual time=0.007..0.009 rows=1.00 loops=1)
+        Filter: (is_active AND (id = '1'::bigint))
+        Rows Removed by Filter: 31
+        Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=76
+Planning Time: 0.165 ms
+Execution Time: 0.092 ms

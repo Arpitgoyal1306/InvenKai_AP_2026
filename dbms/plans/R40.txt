@@ -1,0 +1,87 @@
+R40 · Movements for one warehouse product
+
+BEGIN;
+
+PREPARE sample AS
+SELECT
+         t.id, t.product_id, t.performed_by, t.transaction_type, t.quantity,
+         t.quantity_before, t.quantity_after, t.created_at
+       FROM inventory_transactions t JOIN products p ON p.id = t.product_id
+       WHERE p.store_id IS NULL AND t.product_id = $1
+       ORDER BY t.created_at DESC, t.id DESC
+       LIMIT $2
+       OFFSET $3;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(5,20,0);
+ROLLBACK;
+
+Run 1
+Limit  (cost=16.61..16.66 rows=2 width=53) (actual time=0.025..0.025 rows=1.00 loops=1)
+  Buffers: shared hit=17
+  ->  Incremental Sort  (cost=16.61..16.66 rows=2 width=53) (actual time=0.024..0.025 rows=1.00 loops=1)
+        Sort Key: t.created_at DESC, t.id DESC
+        Presorted Key: t.created_at
+        Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 25kB  Peak Memory: 25kB
+        Buffers: shared hit=17
+        ->  Nested Loop  (cost=0.56..16.60 rows=1 width=53) (actual time=0.014..0.015 rows=1.00 loops=1)
+              Buffers: shared hit=8
+              ->  Index Scan using idx_inventory_transactions_product_created on inventory_transactions t  (cost=0.28..8.29 rows=1 width=53) (actual time=0.007..0.008 rows=1.00 loops=1)
+                    Index Cond: (product_id = '5'::bigint)
+                    Index Searches: 1
+                    Buffers: shared hit=5
+              ->  Index Scan using products_pkey on products p  (cost=0.28..8.29 rows=1 width=8) (actual time=0.006..0.006 rows=1.00 loops=1)
+                    Index Cond: (id = '5'::bigint)
+                    Filter: (store_id IS NULL)
+                    Index Searches: 1
+                    Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=239
+Planning Time: 0.317 ms
+Execution Time: 0.040 ms
+
+Run 2
+Limit  (cost=16.61..16.66 rows=2 width=53) (actual time=0.020..0.020 rows=1.00 loops=1)
+  Buffers: shared hit=15
+  ->  Incremental Sort  (cost=16.61..16.66 rows=2 width=53) (actual time=0.019..0.020 rows=1.00 loops=1)
+        Sort Key: t.created_at DESC, t.id DESC
+        Presorted Key: t.created_at
+        Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 25kB  Peak Memory: 25kB
+        Buffers: shared hit=15
+        ->  Nested Loop  (cost=0.56..16.60 rows=1 width=53) (actual time=0.010..0.011 rows=1.00 loops=1)
+              Buffers: shared hit=6
+              ->  Index Scan using idx_inventory_transactions_product_created on inventory_transactions t  (cost=0.28..8.29 rows=1 width=53) (actual time=0.004..0.004 rows=1.00 loops=1)
+                    Index Cond: (product_id = '5'::bigint)
+                    Index Searches: 1
+                    Buffers: shared hit=3
+              ->  Index Scan using products_pkey on products p  (cost=0.28..8.29 rows=1 width=8) (actual time=0.005..0.006 rows=1.00 loops=1)
+                    Index Cond: (id = '5'::bigint)
+                    Filter: (store_id IS NULL)
+                    Index Searches: 1
+                    Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=239
+Planning Time: 0.290 ms
+Execution Time: 0.034 ms
+
+Run 3
+Limit  (cost=16.61..16.66 rows=2 width=53) (actual time=0.018..0.018 rows=1.00 loops=1)
+  Buffers: shared hit=15
+  ->  Incremental Sort  (cost=16.61..16.66 rows=2 width=53) (actual time=0.018..0.018 rows=1.00 loops=1)
+        Sort Key: t.created_at DESC, t.id DESC
+        Presorted Key: t.created_at
+        Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 25kB  Peak Memory: 25kB
+        Buffers: shared hit=15
+        ->  Nested Loop  (cost=0.56..16.60 rows=1 width=53) (actual time=0.009..0.010 rows=1.00 loops=1)
+              Buffers: shared hit=6
+              ->  Index Scan using idx_inventory_transactions_product_created on inventory_transactions t  (cost=0.28..8.29 rows=1 width=53) (actual time=0.004..0.004 rows=1.00 loops=1)
+                    Index Cond: (product_id = '5'::bigint)
+                    Index Searches: 1
+                    Buffers: shared hit=3
+              ->  Index Scan using products_pkey on products p  (cost=0.28..8.29 rows=1 width=8) (actual time=0.005..0.005 rows=1.00 loops=1)
+                    Index Cond: (id = '5'::bigint)
+                    Filter: (store_id IS NULL)
+                    Index Searches: 1
+                    Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=239
+Planning Time: 0.280 ms
+Execution Time: 0.031 ms

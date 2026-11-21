@@ -1,0 +1,50 @@
+W3 · Create seller category
+
+BEGIN;
+
+PREPARE sample AS
+INSERT INTO categories(name) VALUES($1) ON CONFLICT(name) DO NOTHING RETURNING id;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample('New category');
+ROLLBACK;
+
+Run 1
+Insert on categories  (cost=0.00..0.02 rows=1 width=242) (actual time=0.075..0.075 rows=1.00 loops=1)
+  Conflict Resolution: NOTHING
+  Conflict Arbiter Indexes: categories_name_key
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=36
+  ->  Result  (cost=0.00..0.02 rows=1 width=242) (actual time=0.014..0.014 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=52
+Planning Time: 0.062 ms
+Execution Time: 0.084 ms
+
+Run 2
+Insert on categories  (cost=0.00..0.02 rows=1 width=242) (actual time=0.067..0.067 rows=1.00 loops=1)
+  Conflict Resolution: NOTHING
+  Conflict Arbiter Indexes: categories_name_key
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=37
+  ->  Result  (cost=0.00..0.02 rows=1 width=242) (actual time=0.013..0.013 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=52
+Planning Time: 0.062 ms
+Execution Time: 0.076 ms
+
+Run 3
+Insert on categories  (cost=0.00..0.02 rows=1 width=242) (actual time=0.066..0.066 rows=1.00 loops=1)
+  Conflict Resolution: NOTHING
+  Conflict Arbiter Indexes: categories_name_key
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=37
+  ->  Result  (cost=0.00..0.02 rows=1 width=242) (actual time=0.013..0.013 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=52
+Planning Time: 0.061 ms
+Execution Time: 0.075 ms

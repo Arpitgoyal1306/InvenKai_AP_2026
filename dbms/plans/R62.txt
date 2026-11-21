@@ -1,0 +1,41 @@
+R62 · Supplier details
+
+BEGIN;
+
+PREPARE sample AS
+SELECT *
+     FROM suppliers
+     WHERE id = $1
+       AND is_active = TRUE;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1);
+ROLLBACK;
+
+Run 1
+Seq Scan on suppliers  (cost=0.00..1.40 rows=1 width=348) (actual time=0.004..0.006 rows=1.00 loops=1)
+  Filter: (is_active AND (id = '1'::bigint))
+  Rows Removed by Filter: 31
+  Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=92
+Planning Time: 0.170 ms
+Execution Time: 0.014 ms
+
+Run 2
+Seq Scan on suppliers  (cost=0.00..1.40 rows=1 width=348) (actual time=0.003..0.004 rows=1.00 loops=1)
+  Filter: (is_active AND (id = '1'::bigint))
+  Rows Removed by Filter: 31
+  Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=92
+Planning Time: 0.141 ms
+Execution Time: 0.010 ms
+
+Run 3
+Seq Scan on suppliers  (cost=0.00..1.40 rows=1 width=348) (actual time=0.003..0.004 rows=1.00 loops=1)
+  Filter: (is_active AND (id = '1'::bigint))
+  Rows Removed by Filter: 31
+  Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=92
+Planning Time: 0.138 ms
+Execution Time: 0.010 ms

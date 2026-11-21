@@ -1,0 +1,52 @@
+W21 · Create Google account
+
+BEGIN;
+
+PREPARE sample AS
+INSERT INTO users(name,email,google_subject,avatar_url) VALUES($1,$2,$3,$4)
+       ON CONFLICT(google_subject) DO UPDATE SET avatar_url=COALESCE(excluded.avatar_url,users.avatar_url)
+       RETURNING id,name,email,role,avatar_url;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample('New user','google@example.test','google-new',NULL);
+ROLLBACK;
+
+Run 1
+Insert on users  (cost=0.00..0.02 rows=1 width=1502) (actual time=0.083..0.084 rows=1.00 loops=1)
+  Conflict Resolution: UPDATE
+  Conflict Arbiter Indexes: users_google_subject_key
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=40
+  ->  Result  (cost=0.00..0.02 rows=1 width=1502) (actual time=0.014..0.014 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=63
+Planning Time: 0.069 ms
+Execution Time: 0.123 ms
+
+Run 2
+Insert on users  (cost=0.00..0.02 rows=1 width=1502) (actual time=0.075..0.076 rows=1.00 loops=1)
+  Conflict Resolution: UPDATE
+  Conflict Arbiter Indexes: users_google_subject_key
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=42
+  ->  Result  (cost=0.00..0.02 rows=1 width=1502) (actual time=0.012..0.012 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=63
+Planning Time: 0.065 ms
+Execution Time: 0.107 ms
+
+Run 3
+Insert on users  (cost=0.00..0.02 rows=1 width=1502) (actual time=0.084..0.084 rows=1.00 loops=1)
+  Conflict Resolution: UPDATE
+  Conflict Arbiter Indexes: users_google_subject_key
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=42
+  ->  Result  (cost=0.00..0.02 rows=1 width=1502) (actual time=0.019..0.019 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=63
+Planning Time: 0.067 ms
+Execution Time: 0.119 ms

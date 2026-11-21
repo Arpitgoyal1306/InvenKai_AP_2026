@@ -1,0 +1,44 @@
+R25 · Staff category list
+
+BEGIN;
+
+PREPARE sample AS
+SELECT id,name FROM categories ORDER BY name,id;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample;
+ROLLBACK;
+
+Run 1
+Sort  (cost=1.48..1.52 rows=16 width=19) (actual time=0.015..0.016 rows=16.00 loops=1)
+  Sort Key: name, id
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=7
+  ->  Seq Scan on categories  (cost=0.00..1.16 rows=16 width=19) (actual time=0.003..0.003 rows=16.00 loops=1)
+        Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=101
+Planning Time: 0.163 ms
+Execution Time: 0.028 ms
+
+Run 2
+Sort  (cost=1.48..1.52 rows=16 width=19) (actual time=0.016..0.017 rows=16.00 loops=1)
+  Sort Key: name, id
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=7
+  ->  Seq Scan on categories  (cost=0.00..1.16 rows=16 width=19) (actual time=0.003..0.004 rows=16.00 loops=1)
+        Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=101
+Planning Time: 0.169 ms
+Execution Time: 0.031 ms
+
+Run 3
+Sort  (cost=1.48..1.52 rows=16 width=19) (actual time=0.015..0.015 rows=16.00 loops=1)
+  Sort Key: name, id
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=7
+  ->  Seq Scan on categories  (cost=0.00..1.16 rows=16 width=19) (actual time=0.003..0.003 rows=16.00 loops=1)
+        Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=101
+Planning Time: 0.141 ms
+Execution Time: 0.030 ms

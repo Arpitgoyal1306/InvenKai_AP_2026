@@ -1,0 +1,65 @@
+R17 · Lock seller stock
+
+BEGIN;
+
+PREPARE sample AS
+SELECT i.quantity FROM inventory i JOIN products p ON p.id=i.product_id WHERE p.id=$1 AND p.store_id=$2 AND p.deleted_at IS NULL FOR UPDATE OF p,i;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1,1);
+ROLLBACK;
+
+Run 1
+LockRows  (cost=0.56..16.61 rows=1 width=16) (actual time=0.028..0.033 rows=1.00 loops=1)
+  Buffers: shared hit=12
+  ->  Nested Loop  (cost=0.56..16.60 rows=1 width=16) (actual time=0.020..0.024 rows=1.00 loops=1)
+        Buffers: shared hit=10
+        ->  Index Scan using inventory_product_id_key on inventory i  (cost=0.28..8.29 rows=1 width=18) (actual time=0.011..0.014 rows=1.00 loops=1)
+              Index Cond: (product_id = '1'::bigint)
+              Index Searches: 1
+              Buffers: shared hit=5
+        ->  Index Scan using products_pkey on products p  (cost=0.28..8.30 rows=1 width=14) (actual time=0.008..0.010 rows=1.00 loops=1)
+              Index Cond: (id = '1'::bigint)
+              Filter: ((deleted_at IS NULL) AND (store_id = '1'::bigint))
+              Index Searches: 1
+              Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=198
+Planning Time: 0.334 ms
+Execution Time: 0.050 ms
+
+Run 2
+LockRows  (cost=0.56..16.61 rows=1 width=16) (actual time=0.022..0.022 rows=1.00 loops=1)
+  Buffers: shared hit=8
+  ->  Nested Loop  (cost=0.56..16.60 rows=1 width=16) (actual time=0.012..0.013 rows=1.00 loops=1)
+        Buffers: shared hit=6
+        ->  Index Scan using inventory_product_id_key on inventory i  (cost=0.28..8.29 rows=1 width=18) (actual time=0.006..0.006 rows=1.00 loops=1)
+              Index Cond: (product_id = '1'::bigint)
+              Index Searches: 1
+              Buffers: shared hit=3
+        ->  Index Scan using products_pkey on products p  (cost=0.28..8.30 rows=1 width=14) (actual time=0.006..0.006 rows=1.00 loops=1)
+              Index Cond: (id = '1'::bigint)
+              Filter: ((deleted_at IS NULL) AND (store_id = '1'::bigint))
+              Index Searches: 1
+              Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=198
+Planning Time: 0.306 ms
+Execution Time: 0.034 ms
+
+Run 3
+LockRows  (cost=0.56..16.61 rows=1 width=16) (actual time=0.023..0.024 rows=1.00 loops=1)
+  Buffers: shared hit=8
+  ->  Nested Loop  (cost=0.56..16.60 rows=1 width=16) (actual time=0.015..0.015 rows=1.00 loops=1)
+        Buffers: shared hit=6
+        ->  Index Scan using inventory_product_id_key on inventory i  (cost=0.28..8.29 rows=1 width=18) (actual time=0.007..0.008 rows=1.00 loops=1)
+              Index Cond: (product_id = '1'::bigint)
+              Index Searches: 1
+              Buffers: shared hit=3
+        ->  Index Scan using products_pkey on products p  (cost=0.28..8.30 rows=1 width=14) (actual time=0.007..0.007 rows=1.00 loops=1)
+              Index Cond: (id = '1'::bigint)
+              Filter: ((deleted_at IS NULL) AND (store_id = '1'::bigint))
+              Index Searches: 1
+              Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=198
+Planning Time: 0.319 ms
+Execution Time: 0.038 ms

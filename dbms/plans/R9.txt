@@ -1,0 +1,62 @@
+R9 · Public directory categories
+
+BEGIN;
+
+PREPARE sample AS
+SELECT DISTINCT category FROM stores WHERE published ORDER BY category;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample;
+ROLLBACK;
+
+Run 1
+Sort  (cost=1.40..1.41 rows=1 width=5) (actual time=0.018..0.018 rows=1.00 loops=1)
+  Sort Key: category
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=4
+  ->  HashAggregate  (cost=1.38..1.39 rows=1 width=5) (actual time=0.011..0.011 rows=1.00 loops=1)
+        Group Key: category
+        Batches: 1  Memory Usage: 32kB
+        Buffers: shared hit=1
+        ->  Seq Scan on stores  (cost=0.00..1.32 rows=24 width=5) (actual time=0.004..0.005 rows=24.00 loops=1)
+              Filter: published
+              Rows Removed by Filter: 8
+              Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=118
+Planning Time: 0.192 ms
+Execution Time: 0.041 ms
+
+Run 2
+Sort  (cost=1.40..1.41 rows=1 width=5) (actual time=0.016..0.016 rows=1.00 loops=1)
+  Sort Key: category
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=4
+  ->  HashAggregate  (cost=1.38..1.39 rows=1 width=5) (actual time=0.010..0.010 rows=1.00 loops=1)
+        Group Key: category
+        Batches: 1  Memory Usage: 32kB
+        Buffers: shared hit=1
+        ->  Seq Scan on stores  (cost=0.00..1.32 rows=24 width=5) (actual time=0.003..0.005 rows=24.00 loops=1)
+              Filter: published
+              Rows Removed by Filter: 8
+              Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=118
+Planning Time: 0.182 ms
+Execution Time: 0.038 ms
+
+Run 3
+Sort  (cost=1.40..1.41 rows=1 width=5) (actual time=0.015..0.015 rows=1.00 loops=1)
+  Sort Key: category
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=4
+  ->  HashAggregate  (cost=1.38..1.39 rows=1 width=5) (actual time=0.009..0.009 rows=1.00 loops=1)
+        Group Key: category
+        Batches: 1  Memory Usage: 32kB
+        Buffers: shared hit=1
+        ->  Seq Scan on stores  (cost=0.00..1.32 rows=24 width=5) (actual time=0.003..0.005 rows=24.00 loops=1)
+              Filter: published
+              Rows Removed by Filter: 8
+              Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=118
+Planning Time: 0.175 ms
+Execution Time: 0.036 ms

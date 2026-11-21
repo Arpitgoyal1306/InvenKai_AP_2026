@@ -1,0 +1,42 @@
+W16 · Create sample shop
+
+BEGIN;
+
+PREPARE sample AS
+INSERT INTO stores(owner_id,name,slug,description,category,contact,pickup,cover,published,slug_locked)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,true,true) RETURNING id;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(40,'Sample','sample','Fixture','Food','seed@example.test','Counter','');
+ROLLBACK;
+
+Run 1
+Insert on stores  (cost=0.00..0.01 rows=1 width=1292) (actual time=0.084..0.085 rows=1.00 loops=1)
+  Buffers: shared hit=79
+  ->  Result  (cost=0.00..0.01 rows=1 width=1292) (actual time=0.016..0.016 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=14
+Planning Time: 0.051 ms
+Trigger for constraint stores_owner_id_fkey: time=0.207 calls=1
+Execution Time: 0.305 ms
+
+Run 2
+Insert on stores  (cost=0.00..0.01 rows=1 width=1292) (actual time=0.083..0.083 rows=1.00 loops=1)
+  Buffers: shared hit=81
+  ->  Result  (cost=0.00..0.01 rows=1 width=1292) (actual time=0.015..0.015 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=14
+Planning Time: 0.051 ms
+Trigger for constraint stores_owner_id_fkey: time=0.204 calls=1
+Execution Time: 0.299 ms
+
+Run 3
+Insert on stores  (cost=0.00..0.01 rows=1 width=1292) (actual time=0.076..0.076 rows=1.00 loops=1)
+  Buffers: shared hit=81
+  ->  Result  (cost=0.00..0.01 rows=1 width=1292) (actual time=0.014..0.014 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=14
+Planning Time: 0.047 ms
+Trigger for constraint stores_owner_id_fkey: time=0.194 calls=1
+Execution Time: 0.281 ms

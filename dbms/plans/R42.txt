@@ -1,0 +1,72 @@
+R42 · Warehouse inventory count
+
+BEGIN;
+
+PREPARE sample AS
+SELECT count(*)::int AS total FROM products p
+      JOIN inventory i ON i.product_id=p.id WHERE p.store_id IS NULL AND NOT p.archived;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample;
+ROLLBACK;
+
+Run 1
+Aggregate  (cost=73.62..73.63 rows=1 width=4) (actual time=0.165..0.165 rows=1.00 loops=1)
+  Buffers: shared hit=26
+  ->  Hash Join  (cost=28.79..72.66 rows=385 width=0) (actual time=0.042..0.154 rows=385.00 loops=1)
+        Hash Cond: (i.product_id = p.id)
+        Buffers: shared hit=26
+        ->  Seq Scan on inventory i  (cost=0.00..38.48 rows=2048 width=8) (actual time=0.002..0.049 rows=2048.00 loops=1)
+              Buffers: shared hit=18
+        ->  Hash  (cost=23.98..23.98 rows=385 width=8) (actual time=0.035..0.036 rows=385.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 24kB
+              Buffers: shared hit=8
+              ->  Index Only Scan using market_products on products p  (cost=0.28..23.98 rows=385 width=8) (actual time=0.004..0.023 rows=385.00 loops=1)
+                    Index Cond: ((store_id IS NULL) AND (archived = false))
+                    Heap Fetches: 19
+                    Index Searches: 1
+                    Buffers: shared hit=8
+Planning:
+  Buffers: shared hit=280
+Planning Time: 0.414 ms
+Execution Time: 0.191 ms
+
+Run 2
+Aggregate  (cost=73.62..73.63 rows=1 width=4) (actual time=0.163..0.164 rows=1.00 loops=1)
+  Buffers: shared hit=26
+  ->  Hash Join  (cost=28.79..72.66 rows=385 width=0) (actual time=0.041..0.152 rows=385.00 loops=1)
+        Hash Cond: (i.product_id = p.id)
+        Buffers: shared hit=26
+        ->  Seq Scan on inventory i  (cost=0.00..38.48 rows=2048 width=8) (actual time=0.002..0.050 rows=2048.00 loops=1)
+              Buffers: shared hit=18
+        ->  Hash  (cost=23.98..23.98 rows=385 width=8) (actual time=0.034..0.034 rows=385.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 24kB
+              Buffers: shared hit=8
+              ->  Index Only Scan using market_products on products p  (cost=0.28..23.98 rows=385 width=8) (actual time=0.004..0.021 rows=385.00 loops=1)
+                    Index Cond: ((store_id IS NULL) AND (archived = false))
+                    Heap Fetches: 19
+                    Index Searches: 1
+                    Buffers: shared hit=8
+Planning:
+  Buffers: shared hit=280
+Planning Time: 0.392 ms
+Execution Time: 0.187 ms
+
+Run 3
+Aggregate  (cost=73.62..73.63 rows=1 width=4) (actual time=0.159..0.159 rows=1.00 loops=1)
+  Buffers: shared hit=26
+  ->  Hash Join  (cost=28.79..72.66 rows=385 width=0) (actual time=0.039..0.149 rows=385.00 loops=1)
+        Hash Cond: (i.product_id = p.id)
+        Buffers: shared hit=26
+        ->  Seq Scan on inventory i  (cost=0.00..38.48 rows=2048 width=8) (actual time=0.002..0.048 rows=2048.00 loops=1)
+              Buffers: shared hit=18
+        ->  Hash  (cost=23.98..23.98 rows=385 width=8) (actual time=0.033..0.033 rows=385.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 24kB
+              Buffers: shared hit=8
+              ->  Index Only Scan using market_products on products p  (cost=0.28..23.98 rows=385 width=8) (actual time=0.004..0.021 rows=385.00 loops=1)
+                    Index Cond: ((store_id IS NULL) AND (archived = false))
+                    Heap Fetches: 19
+                    Index Searches: 1
+                    Buffers: shared hit=8
+Planning:
+  Buffers: shared hit=280
+Planning Time: 0.356 ms
+Execution Time: 0.181 ms

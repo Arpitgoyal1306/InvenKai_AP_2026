@@ -1,0 +1,50 @@
+W8 · Hide seller product
+
+BEGIN;
+
+PREPARE sample AS
+UPDATE products SET archived=$3 WHERE id=$1 AND store_id=$2 AND deleted_at IS NULL;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1,1,true);
+ROLLBACK;
+
+Run 1
+Update on products  (cost=0.28..8.30 rows=0 width=0) (actual time=0.078..0.078 rows=0.00 loops=1)
+  Buffers: shared hit=35
+  ->  Index Scan using products_pkey on products  (cost=0.28..8.30 rows=1 width=7) (actual time=0.006..0.006 rows=1.00 loops=1)
+        Index Cond: (id = '1'::bigint)
+        Filter: ((deleted_at IS NULL) AND (store_id = '1'::bigint))
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=129
+Planning Time: 0.202 ms
+Trigger market_product_change: time=0.783 calls=1
+Execution Time: 0.896 ms
+
+Run 2
+Update on products  (cost=0.28..8.30 rows=0 width=0) (actual time=0.088..0.088 rows=0.00 loops=1)
+  Buffers: shared hit=38
+  ->  Index Scan using products_pkey on products  (cost=0.28..8.30 rows=1 width=7) (actual time=0.009..0.011 rows=1.00 loops=1)
+        Index Cond: (id = '1'::bigint)
+        Filter: ((deleted_at IS NULL) AND (store_id = '1'::bigint))
+        Index Searches: 1
+        Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=129
+Planning Time: 0.224 ms
+Trigger market_product_change: time=0.803 calls=1
+Execution Time: 0.929 ms
+
+Run 3
+Update on products  (cost=0.28..8.30 rows=0 width=0) (actual time=0.090..0.090 rows=0.00 loops=1)
+  Buffers: shared hit=38
+  ->  Index Scan using products_pkey on products  (cost=0.28..8.30 rows=1 width=7) (actual time=0.010..0.012 rows=1.00 loops=1)
+        Index Cond: (id = '1'::bigint)
+        Filter: ((deleted_at IS NULL) AND (store_id = '1'::bigint))
+        Index Searches: 1
+        Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=129
+Planning Time: 0.226 ms
+Trigger market_product_change: time=0.878 calls=1
+Execution Time: 1.010 ms

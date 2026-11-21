@@ -1,0 +1,47 @@
+W31 · Open order
+
+BEGIN;
+
+PREPARE sample AS
+INSERT INTO orders (user_id, status, total_amount)
+         VALUES ($1, 'placed', 0)
+         RETURNING id, user_id, status, total_amount,
+                   created_at, updated_at;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(33);
+ROLLBACK;
+
+Run 1
+Insert on orders  (cost=0.00..0.02 rows=1 width=490) (actual time=0.129..0.130 rows=1.00 loops=1)
+  Buffers: shared hit=118
+  ->  Result  (cost=0.00..0.02 rows=1 width=490) (actual time=0.017..0.018 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=8
+Planning Time: 0.052 ms
+Trigger for constraint orders_store_id_fkey: time=0.022 calls=1
+Trigger for constraint orders_user_id_fkey: time=0.211 calls=1
+Execution Time: 0.374 ms
+
+Run 2
+Insert on orders  (cost=0.00..0.02 rows=1 width=490) (actual time=0.127..0.127 rows=1.00 loops=1)
+  Buffers: shared hit=118
+  ->  Result  (cost=0.00..0.02 rows=1 width=490) (actual time=0.017..0.017 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=8
+Planning Time: 0.049 ms
+Trigger for constraint orders_store_id_fkey: time=0.021 calls=1
+Trigger for constraint orders_user_id_fkey: time=0.205 calls=1
+Execution Time: 0.365 ms
+
+Run 3
+Insert on orders  (cost=0.00..0.02 rows=1 width=490) (actual time=0.116..0.116 rows=1.00 loops=1)
+  Buffers: shared hit=118
+  ->  Result  (cost=0.00..0.02 rows=1 width=490) (actual time=0.014..0.014 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=8
+Planning Time: 0.044 ms
+Trigger for constraint orders_store_id_fkey: time=0.020 calls=1
+Trigger for constraint orders_user_id_fkey: time=0.189 calls=1
+Execution Time: 0.335 ms

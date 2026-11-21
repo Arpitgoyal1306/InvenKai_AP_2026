@@ -1,0 +1,38 @@
+R16 · Category lookup
+
+BEGIN;
+
+PREPARE sample AS
+SELECT id FROM categories WHERE name=$1;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample('Category 1');
+ROLLBACK;
+
+Run 1
+Seq Scan on categories  (cost=0.00..1.20 rows=1 width=8) (actual time=0.003..0.004 rows=1.00 loops=1)
+  Filter: ((name)::text = 'Category 1'::text)
+  Rows Removed by Filter: 15
+  Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=84
+Planning Time: 0.161 ms
+Execution Time: 0.011 ms
+
+Run 2
+Seq Scan on categories  (cost=0.00..1.20 rows=1 width=8) (actual time=0.003..0.004 rows=1.00 loops=1)
+  Filter: ((name)::text = 'Category 1'::text)
+  Rows Removed by Filter: 15
+  Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=84
+Planning Time: 0.142 ms
+Execution Time: 0.010 ms
+
+Run 3
+Seq Scan on categories  (cost=0.00..1.20 rows=1 width=8) (actual time=0.003..0.004 rows=1.00 loops=1)
+  Filter: ((name)::text = 'Category 1'::text)
+  Rows Removed by Filter: 15
+  Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=84
+Planning Time: 0.155 ms
+Execution Time: 0.010 ms

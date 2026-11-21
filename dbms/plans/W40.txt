@@ -1,0 +1,59 @@
+W40 · Edit warehouse product
+
+BEGIN;
+
+PREPARE sample AS
+UPDATE products
+       SET category_id = $1,
+           name = $2,
+           description = $3,
+           sku = $4,
+           price = $5,
+           low_stock_threshold = $7,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $6
+       RETURNING *;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1,'Updated','Fixture','SKU-5',10,5,3);
+ROLLBACK;
+
+Run 1
+Update on products  (cost=0.28..8.30 rows=1 width=710) (actual time=0.081..0.081 rows=1.00 loops=1)
+  Buffers: shared hit=34
+  ->  Index Scan using products_pkey on products  (cost=0.28..8.30 rows=1 width=710) (actual time=0.006..0.006 rows=1.00 loops=1)
+        Index Cond: (id = '5'::bigint)
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=118
+Planning Time: 0.188 ms
+Trigger for constraint products_category_id_fkey: time=0.113 calls=1
+Trigger market_product_change: time=0.677 calls=1
+Execution Time: 0.906 ms
+
+Run 2
+Update on products  (cost=0.28..8.30 rows=1 width=710) (actual time=0.106..0.108 rows=1.00 loops=1)
+  Buffers: shared hit=38
+  ->  Index Scan using products_pkey on products  (cost=0.28..8.30 rows=1 width=710) (actual time=0.009..0.011 rows=1.00 loops=1)
+        Index Cond: (id = '5'::bigint)
+        Index Searches: 1
+        Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=118
+Planning Time: 0.229 ms
+Trigger for constraint products_category_id_fkey: time=0.149 calls=1
+Trigger market_product_change: time=0.707 calls=1
+Execution Time: 1.003 ms
+
+Run 3
+Update on products  (cost=0.28..8.30 rows=1 width=710) (actual time=0.080..0.082 rows=1.00 loops=1)
+  Buffers: shared hit=38
+  ->  Index Scan using products_pkey on products  (cost=0.28..8.30 rows=1 width=710) (actual time=0.009..0.010 rows=1.00 loops=1)
+        Index Cond: (id = '5'::bigint)
+        Index Searches: 1
+        Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=118
+Planning Time: 0.203 ms
+Trigger for constraint products_category_id_fkey: time=0.111 calls=1
+Trigger market_product_change: time=0.693 calls=1
+Execution Time: 0.920 ms

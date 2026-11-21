@@ -1,0 +1,38 @@
+R34 · Account profile
+
+BEGIN;
+
+PREPARE sample AS
+SELECT id, name, email, role, phone, pickup_address, avatar_url, password_hash IS NULL AS google_only FROM users WHERE id=$1;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(33);
+ROLLBACK;
+
+Run 1
+Seq Scan on users  (cost=0.00..7.20 rows=1 width=187) (actual time=0.004..0.010 rows=1.00 loops=1)
+  Filter: (id = '33'::bigint)
+  Rows Removed by Filter: 255
+  Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=121
+Planning Time: 0.194 ms
+Execution Time: 0.017 ms
+
+Run 2
+Seq Scan on users  (cost=0.00..7.20 rows=1 width=187) (actual time=0.004..0.010 rows=1.00 loops=1)
+  Filter: (id = '33'::bigint)
+  Rows Removed by Filter: 255
+  Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=121
+Planning Time: 0.169 ms
+Execution Time: 0.016 ms
+
+Run 3
+Seq Scan on users  (cost=0.00..7.20 rows=1 width=187) (actual time=0.003..0.009 rows=1.00 loops=1)
+  Filter: (id = '33'::bigint)
+  Rows Removed by Filter: 255
+  Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=121
+Planning Time: 0.158 ms
+Execution Time: 0.014 ms

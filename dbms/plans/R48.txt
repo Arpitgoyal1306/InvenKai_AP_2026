@@ -1,0 +1,38 @@
+R48 · Look up prior checkout
+
+BEGIN;
+
+PREPARE sample AS
+SELECT id,checkout_fingerprint FROM orders WHERE user_id=$1 AND checkout_key=$2;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(33,'key-1');
+ROLLBACK;
+
+Run 1
+Index Scan using orders_checkout_key on orders  (cost=0.27..8.29 rows=1 width=23) (actual time=0.006..0.008 rows=1.00 loops=1)
+  Index Cond: ((user_id = '33'::bigint) AND ((checkout_key)::text = 'key-1'::text))
+  Index Searches: 1
+  Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=141
+Planning Time: 0.222 ms
+Execution Time: 0.015 ms
+
+Run 2
+Index Scan using orders_checkout_key on orders  (cost=0.27..8.29 rows=1 width=23) (actual time=0.006..0.006 rows=1.00 loops=1)
+  Index Cond: ((user_id = '33'::bigint) AND ((checkout_key)::text = 'key-1'::text))
+  Index Searches: 1
+  Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=141
+Planning Time: 0.219 ms
+Execution Time: 0.013 ms
+
+Run 3
+Index Scan using orders_checkout_key on orders  (cost=0.27..8.29 rows=1 width=23) (actual time=0.005..0.005 rows=1.00 loops=1)
+  Index Cond: ((user_id = '33'::bigint) AND ((checkout_key)::text = 'key-1'::text))
+  Index Searches: 1
+  Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=141
+Planning Time: 0.196 ms
+Execution Time: 0.011 ms
