@@ -1,0 +1,38 @@
+R4 · Google-only account check
+
+BEGIN;
+
+PREPARE sample AS
+SELECT 1 FROM users WHERE id=$1 AND google_subject IS NOT NULL AND password_hash IS NULL;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(2);
+ROLLBACK;
+
+Run 1
+Seq Scan on users  (cost=0.00..7.20 rows=1 width=4) (actual time=0.005..0.015 rows=1.00 loops=1)
+  Filter: ((google_subject IS NOT NULL) AND (password_hash IS NULL) AND (id = '2'::bigint))
+  Rows Removed by Filter: 255
+  Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=106
+Planning Time: 0.230 ms
+Execution Time: 0.023 ms
+
+Run 2
+Seq Scan on users  (cost=0.00..7.20 rows=1 width=4) (actual time=0.005..0.015 rows=1.00 loops=1)
+  Filter: ((google_subject IS NOT NULL) AND (password_hash IS NULL) AND (id = '2'::bigint))
+  Rows Removed by Filter: 255
+  Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=106
+Planning Time: 0.231 ms
+Execution Time: 0.023 ms
+
+Run 3
+Seq Scan on users  (cost=0.00..7.20 rows=1 width=4) (actual time=0.003..0.013 rows=1.00 loops=1)
+  Filter: ((google_subject IS NOT NULL) AND (password_hash IS NULL) AND (id = '2'::bigint))
+  Rows Removed by Filter: 255
+  Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=106
+Planning Time: 0.174 ms
+Execution Time: 0.018 ms

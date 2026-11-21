@@ -1,0 +1,115 @@
+W26 · Claim pending receipt jobs
+
+BEGIN;
+
+PREPARE sample AS
+WITH candidates AS (
+         SELECT id
+         FROM order_outbox
+         WHERE
+           (status = 'pending' AND available_at <= CURRENT_TIMESTAMP)
+           OR
+           (status = 'processing' AND locked_until < CURRENT_TIMESTAMP)
+         ORDER BY id
+         LIMIT $1
+         FOR UPDATE SKIP LOCKED
+       )
+       UPDATE order_outbox AS events
+       SET status = 'processing',
+           attempts = attempts + 1,
+           locked_until = CURRENT_TIMESTAMP + ($2 * INTERVAL '1 second'),
+           claim_token = $3::uuid,
+           updated_at = CURRENT_TIMESTAMP
+       FROM candidates
+       WHERE events.id = candidates.id
+       RETURNING events.id, events.order_id, events.payload,
+                 events.attempts, events.claim_token;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(10,60,'00000000-0000-4000-8000-000000000001');
+ROLLBACK;
+
+Run 1
+Update on order_outbox events  (cost=2.00..19.24 rows=10 width=132) (actual time=0.100..0.163 rows=10.00 loops=1)
+  Buffers: shared hit=146
+  CTE candidates
+    ->  Limit  (cost=0.27..1.67 rows=10 width=14) (actual time=0.013..0.016 rows=10.00 loops=1)
+          Buffers: shared hit=13
+          ->  LockRows  (cost=0.27..48.04 rows=341 width=14) (actual time=0.012..0.015 rows=10.00 loops=1)
+                Buffers: shared hit=13
+                ->  Index Scan using order_outbox_pkey on order_outbox  (cost=0.27..44.63 rows=341 width=14) (actual time=0.004..0.005 rows=10.00 loops=1)
+                      Filter: ((((status)::text = 'pending'::text) AND (available_at <= CURRENT_TIMESTAMP)) OR (((status)::text = 'processing'::text) AND (locked_until < CURRENT_TIMESTAMP)))
+                      Rows Removed by Filter: 6
+                      Index Searches: 1
+                      Buffers: shared hit=3
+  ->  Hash Join  (cost=0.33..17.57 rows=10 width=132) (actual time=0.031..0.071 rows=10.00 loops=1)
+        Hash Cond: (events.id = candidates.id)
+        Buffers: shared hit=23
+        ->  Seq Scan on order_outbox events  (cost=0.00..15.12 rows=512 width=18) (actual time=0.003..0.031 rows=512.00 loops=1)
+              Buffers: shared hit=10
+        ->  Hash  (cost=0.20..0.20 rows=10 width=40) (actual time=0.024..0.024 rows=10.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=13
+              ->  CTE Scan on candidates  (cost=0.00..0.20 rows=10 width=40) (actual time=0.017..0.021 rows=10.00 loops=1)
+                    Storage: Memory  Maximum Storage: 17kB
+                    Buffers: shared hit=13
+Planning:
+  Buffers: shared hit=200
+Planning Time: 0.350 ms
+Execution Time: 0.214 ms
+
+Run 2
+Update on order_outbox events  (cost=2.00..19.24 rows=10 width=132) (actual time=0.089..0.158 rows=10.00 loops=1)
+  Buffers: shared hit=184
+  CTE candidates
+    ->  Limit  (cost=0.27..1.67 rows=10 width=14) (actual time=0.011..0.016 rows=10.00 loops=1)
+          Buffers: shared hit=31
+          ->  LockRows  (cost=0.27..48.04 rows=341 width=14) (actual time=0.011..0.015 rows=10.00 loops=1)
+                Buffers: shared hit=31
+                ->  Index Scan using order_outbox_pkey on order_outbox  (cost=0.27..44.63 rows=341 width=14) (actual time=0.003..0.006 rows=10.00 loops=1)
+                      Filter: ((((status)::text = 'pending'::text) AND (available_at <= CURRENT_TIMESTAMP)) OR (((status)::text = 'processing'::text) AND (locked_until < CURRENT_TIMESTAMP)))
+                      Rows Removed by Filter: 6
+                      Index Searches: 1
+                      Buffers: shared hit=21
+  ->  Hash Join  (cost=0.33..17.57 rows=10 width=132) (actual time=0.030..0.069 rows=10.00 loops=1)
+        Hash Cond: (events.id = candidates.id)
+        Buffers: shared hit=41
+        ->  Seq Scan on order_outbox events  (cost=0.00..15.12 rows=512 width=18) (actual time=0.002..0.028 rows=512.00 loops=1)
+              Buffers: shared hit=10
+        ->  Hash  (cost=0.20..0.20 rows=10 width=40) (actual time=0.025..0.025 rows=10.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=31
+              ->  CTE Scan on candidates  (cost=0.00..0.20 rows=10 width=40) (actual time=0.015..0.022 rows=10.00 loops=1)
+                    Storage: Memory  Maximum Storage: 17kB
+                    Buffers: shared hit=31
+Planning:
+  Buffers: shared hit=200
+Planning Time: 0.303 ms
+Execution Time: 0.202 ms
+
+Run 3
+Update on order_outbox events  (cost=2.00..19.24 rows=10 width=132) (actual time=0.084..0.153 rows=10.00 loops=1)
+  Buffers: shared hit=184
+  CTE candidates
+    ->  Limit  (cost=0.27..1.67 rows=10 width=14) (actual time=0.008..0.013 rows=10.00 loops=1)
+          Buffers: shared hit=31
+          ->  LockRows  (cost=0.27..48.04 rows=341 width=14) (actual time=0.008..0.012 rows=10.00 loops=1)
+                Buffers: shared hit=31
+                ->  Index Scan using order_outbox_pkey on order_outbox  (cost=0.27..44.63 rows=341 width=14) (actual time=0.003..0.005 rows=10.00 loops=1)
+                      Filter: ((((status)::text = 'pending'::text) AND (available_at <= CURRENT_TIMESTAMP)) OR (((status)::text = 'processing'::text) AND (locked_until < CURRENT_TIMESTAMP)))
+                      Rows Removed by Filter: 6
+                      Index Searches: 1
+                      Buffers: shared hit=21
+  ->  Hash Join  (cost=0.33..17.57 rows=10 width=132) (actual time=0.032..0.070 rows=10.00 loops=1)
+        Hash Cond: (events.id = candidates.id)
+        Buffers: shared hit=41
+        ->  Seq Scan on order_outbox events  (cost=0.00..15.12 rows=512 width=18) (actual time=0.002..0.027 rows=512.00 loops=1)
+              Buffers: shared hit=10
+        ->  Hash  (cost=0.20..0.20 rows=10 width=40) (actual time=0.027..0.027 rows=10.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=31
+              ->  CTE Scan on candidates  (cost=0.00..0.20 rows=10 width=40) (actual time=0.018..0.025 rows=10.00 loops=1)
+                    Storage: Memory  Maximum Storage: 17kB
+                    Buffers: shared hit=31
+Planning:
+  Buffers: shared hit=200
+Planning Time: 0.278 ms
+Execution Time: 0.192 ms

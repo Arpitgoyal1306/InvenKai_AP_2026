@@ -1,0 +1,50 @@
+W36 · Record order stock movement
+
+BEGIN;
+
+PREPARE sample AS
+INSERT INTO inventory_transactions
+          (product_id, performed_by, transaction_type, quantity,
+           quantity_before, quantity_after, order_id)
+         VALUES ($1, $2, 'decrease', $3, $4, $5, $6);
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1,33,1,1,0,1);
+ROLLBACK;
+
+Run 1
+Insert on inventory_transactions  (cost=0.00..0.01 rows=0 width=0) (actual time=0.154..0.154 rows=0.00 loops=1)
+  Buffers: shared hit=113
+  ->  Result  (cost=0.00..0.01 rows=1 width=90) (actual time=0.016..0.016 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=11
+Planning Time: 0.043 ms
+Trigger for constraint fk_inventory_transactions_order: time=0.254 calls=1
+Trigger for constraint inventory_transactions_performed_by_fkey: time=0.113 calls=1
+Trigger for constraint inventory_transactions_product_id_fkey: time=0.106 calls=1
+Execution Time: 0.638 ms
+
+Run 2
+Insert on inventory_transactions  (cost=0.00..0.01 rows=0 width=0) (actual time=0.141..0.141 rows=0.00 loops=1)
+  Buffers: shared hit=113
+  ->  Result  (cost=0.00..0.01 rows=1 width=90) (actual time=0.016..0.016 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=11
+Planning Time: 0.045 ms
+Trigger for constraint fk_inventory_transactions_order: time=0.289 calls=1
+Trigger for constraint inventory_transactions_performed_by_fkey: time=0.120 calls=1
+Trigger for constraint inventory_transactions_product_id_fkey: time=0.111 calls=1
+Execution Time: 0.672 ms
+
+Run 3
+Insert on inventory_transactions  (cost=0.00..0.01 rows=0 width=0) (actual time=0.137..0.138 rows=0.00 loops=1)
+  Buffers: shared hit=113
+  ->  Result  (cost=0.00..0.01 rows=1 width=90) (actual time=0.016..0.016 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=11
+Planning Time: 0.046 ms
+Trigger for constraint fk_inventory_transactions_order: time=0.235 calls=1
+Trigger for constraint inventory_transactions_performed_by_fkey: time=0.120 calls=1
+Trigger for constraint inventory_transactions_product_id_fkey: time=0.108 calls=1
+Execution Time: 0.611 ms

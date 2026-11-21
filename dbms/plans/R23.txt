@@ -1,0 +1,65 @@
+R23 · Seller order details
+
+BEGIN;
+
+PREPARE sample AS
+SELECT o.id,o.created_at,o.status,o.total_amount,o.pickup_snapshot,o.buyer_details,u.name AS buyer,u.email FROM orders o JOIN users u ON u.id=o.user_id WHERE o.id=$1 AND o.store_id=$2;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1,1);
+ROLLBACK;
+
+Run 1
+Hash Join  (cost=8.30..15.55 rows=1 width=99) (actual time=0.014..0.025 rows=1.00 loops=1)
+  Hash Cond: (u.id = o.user_id)
+  Buffers: shared hit=7
+  ->  Seq Scan on users u  (cost=0.00..6.56 rows=256 width=39) (actual time=0.003..0.009 rows=256.00 loops=1)
+        Buffers: shared hit=4
+  ->  Hash  (cost=8.29..8.29 rows=1 width=76) (actual time=0.006..0.006 rows=1.00 loops=1)
+        Buckets: 1024  Batches: 1  Memory Usage: 9kB
+        Buffers: shared hit=3
+        ->  Index Scan using orders_pkey on orders o  (cost=0.27..8.29 rows=1 width=76) (actual time=0.003..0.004 rows=1.00 loops=1)
+              Index Cond: (id = '1'::bigint)
+              Filter: (store_id = '1'::bigint)
+              Index Searches: 1
+              Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=338
+Planning Time: 0.414 ms
+Execution Time: 0.038 ms
+
+Run 2
+Hash Join  (cost=8.30..15.55 rows=1 width=99) (actual time=0.014..0.028 rows=1.00 loops=1)
+  Hash Cond: (u.id = o.user_id)
+  Buffers: shared hit=7
+  ->  Seq Scan on users u  (cost=0.00..6.56 rows=256 width=39) (actual time=0.003..0.010 rows=256.00 loops=1)
+        Buffers: shared hit=4
+  ->  Hash  (cost=8.29..8.29 rows=1 width=76) (actual time=0.007..0.007 rows=1.00 loops=1)
+        Buckets: 1024  Batches: 1  Memory Usage: 9kB
+        Buffers: shared hit=3
+        ->  Index Scan using orders_pkey on orders o  (cost=0.27..8.29 rows=1 width=76) (actual time=0.004..0.004 rows=1.00 loops=1)
+              Index Cond: (id = '1'::bigint)
+              Filter: (store_id = '1'::bigint)
+              Index Searches: 1
+              Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=338
+Planning Time: 0.467 ms
+Execution Time: 0.042 ms
+
+Run 3
+Hash Join  (cost=8.30..15.55 rows=1 width=99) (actual time=0.015..0.026 rows=1.00 loops=1)
+  Hash Cond: (u.id = o.user_id)
+  Buffers: shared hit=7
+  ->  Seq Scan on users u  (cost=0.00..6.56 rows=256 width=39) (actual time=0.003..0.010 rows=256.00 loops=1)
+        Buffers: shared hit=4
+  ->  Hash  (cost=8.29..8.29 rows=1 width=76) (actual time=0.006..0.006 rows=1.00 loops=1)
+        Buckets: 1024  Batches: 1  Memory Usage: 9kB
+        Buffers: shared hit=3
+        ->  Index Scan using orders_pkey on orders o  (cost=0.27..8.29 rows=1 width=76) (actual time=0.004..0.004 rows=1.00 loops=1)
+              Index Cond: (id = '1'::bigint)
+              Filter: (store_id = '1'::bigint)
+              Index Searches: 1
+              Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=338
+Planning Time: 0.477 ms
+Execution Time: 0.039 ms

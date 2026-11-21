@@ -1,0 +1,50 @@
+R54 · Lock warehouse product
+
+BEGIN;
+
+PREPARE sample AS
+SELECT *
+       FROM products
+       WHERE id = $1 AND store_id IS NULL AND NOT archived
+       FOR UPDATE;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(5);
+ROLLBACK;
+
+Run 1
+LockRows  (cost=0.28..8.30 rows=1 width=117) (actual time=0.013..0.013 rows=1.00 loops=1)
+  Buffers: shared hit=4
+  ->  Index Scan using products_pkey on products  (cost=0.28..8.29 rows=1 width=117) (actual time=0.006..0.006 rows=1.00 loops=1)
+        Index Cond: (id = '5'::bigint)
+        Filter: ((store_id IS NULL) AND (NOT archived))
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=153
+Planning Time: 0.200 ms
+Execution Time: 0.023 ms
+
+Run 2
+LockRows  (cost=0.28..8.30 rows=1 width=117) (actual time=0.015..0.015 rows=1.00 loops=1)
+  Buffers: shared hit=4
+  ->  Index Scan using products_pkey on products  (cost=0.28..8.29 rows=1 width=117) (actual time=0.006..0.007 rows=1.00 loops=1)
+        Index Cond: (id = '5'::bigint)
+        Filter: ((store_id IS NULL) AND (NOT archived))
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=153
+Planning Time: 0.202 ms
+Execution Time: 0.025 ms
+
+Run 3
+LockRows  (cost=0.28..8.30 rows=1 width=117) (actual time=0.012..0.012 rows=1.00 loops=1)
+  Buffers: shared hit=4
+  ->  Index Scan using products_pkey on products  (cost=0.28..8.29 rows=1 width=117) (actual time=0.006..0.006 rows=1.00 loops=1)
+        Index Cond: (id = '5'::bigint)
+        Filter: ((store_id IS NULL) AND (NOT archived))
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=153
+Planning Time: 0.207 ms
+Execution Time: 0.021 ms

@@ -1,0 +1,94 @@
+R59 · Total warehouse movements
+
+BEGIN;
+
+PREPARE sample AS
+SELECT
+        COALESCE(
+          SUM(t.quantity) FILTER (
+            WHERE t.transaction_type = 'increase'
+          ),
+          0
+        ) AS total_added,
+        COALESCE(
+          SUM(t.quantity) FILTER (
+            WHERE t.transaction_type = 'decrease'
+          ),
+          0
+        ) AS total_removed
+      FROM inventory_transactions t JOIN products p ON p.id = t.product_id
+      WHERE p.store_id IS NULL AND t.created_at >= (
+        $1::date::timestamp AT TIME ZONE 'UTC'
+      )
+      AND t.created_at < (
+        ($2::date + INTERVAL '1 day')::timestamp
+        AT TIME ZONE 'UTC'
+      );
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(CURRENT_DATE-1,CURRENT_DATE);
+ROLLBACK;
+
+Run 1
+Aggregate  (cost=90.41..90.42 rows=1 width=16) (actual time=0.208..0.208 rows=1.00 loops=1)
+  Buffers: shared hit=32
+  ->  Hash Join  (cost=28.55..86.46 rows=395 width=13) (actual time=0.046..0.196 rows=341.00 loops=1)
+        Hash Cond: (t.product_id = p.id)
+        Buffers: shared hit=32
+        ->  Seq Scan on inventory_transactions t  (cost=0.00..52.70 rows=1980 width=21) (actual time=0.004..0.095 rows=1980.00 loops=1)
+              Filter: ((created_at >= '2026-11-21 05:30:00+05:30'::timestamp with time zone) AND (created_at < '2026-11-23 05:30:00+05:30'::timestamp with time zone))
+              Buffers: shared hit=23
+        ->  Hash  (cost=23.43..23.43 rows=409 width=8) (actual time=0.038..0.038 rows=409.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 24kB
+              Buffers: shared hit=9
+              ->  Index Only Scan using market_products on products p  (cost=0.28..23.43 rows=409 width=8) (actual time=0.004..0.024 rows=409.00 loops=1)
+                    Index Cond: (store_id IS NULL)
+                    Heap Fetches: 23
+                    Index Searches: 1
+                    Buffers: shared hit=9
+Planning:
+  Buffers: shared hit=338
+Planning Time: 0.469 ms
+Execution Time: 0.224 ms
+
+Run 2
+Aggregate  (cost=90.41..90.42 rows=1 width=16) (actual time=0.205..0.205 rows=1.00 loops=1)
+  Buffers: shared hit=32
+  ->  Hash Join  (cost=28.55..86.46 rows=395 width=13) (actual time=0.046..0.192 rows=341.00 loops=1)
+        Hash Cond: (t.product_id = p.id)
+        Buffers: shared hit=32
+        ->  Seq Scan on inventory_transactions t  (cost=0.00..52.70 rows=1980 width=21) (actual time=0.004..0.094 rows=1980.00 loops=1)
+              Filter: ((created_at >= '2026-11-21 05:30:00+05:30'::timestamp with time zone) AND (created_at < '2026-11-23 05:30:00+05:30'::timestamp with time zone))
+              Buffers: shared hit=23
+        ->  Hash  (cost=23.43..23.43 rows=409 width=8) (actual time=0.037..0.038 rows=409.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 24kB
+              Buffers: shared hit=9
+              ->  Index Only Scan using market_products on products p  (cost=0.28..23.43 rows=409 width=8) (actual time=0.004..0.024 rows=409.00 loops=1)
+                    Index Cond: (store_id IS NULL)
+                    Heap Fetches: 20
+                    Index Searches: 1
+                    Buffers: shared hit=9
+Planning:
+  Buffers: shared hit=337
+Planning Time: 0.417 ms
+Execution Time: 0.223 ms
+
+Run 3
+Aggregate  (cost=90.41..90.42 rows=1 width=16) (actual time=0.206..0.206 rows=1.00 loops=1)
+  Buffers: shared hit=32
+  ->  Hash Join  (cost=28.55..86.46 rows=395 width=13) (actual time=0.044..0.194 rows=341.00 loops=1)
+        Hash Cond: (t.product_id = p.id)
+        Buffers: shared hit=32
+        ->  Seq Scan on inventory_transactions t  (cost=0.00..52.70 rows=1980 width=21) (actual time=0.003..0.094 rows=1980.00 loops=1)
+              Filter: ((created_at >= '2026-11-21 05:30:00+05:30'::timestamp with time zone) AND (created_at < '2026-11-23 05:30:00+05:30'::timestamp with time zone))
+              Buffers: shared hit=23
+        ->  Hash  (cost=23.43..23.43 rows=409 width=8) (actual time=0.037..0.037 rows=409.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 24kB
+              Buffers: shared hit=9
+              ->  Index Only Scan using market_products on products p  (cost=0.28..23.43 rows=409 width=8) (actual time=0.003..0.023 rows=409.00 loops=1)
+                    Index Cond: (store_id IS NULL)
+                    Heap Fetches: 20
+                    Index Searches: 1
+                    Buffers: shared hit=9
+Planning:
+  Buffers: shared hit=337
+Planning Time: 0.399 ms
+Execution Time: 0.221 ms

@@ -1,0 +1,47 @@
+W17 · Ensure sample category exists
+
+BEGIN;
+
+PREPARE sample AS
+INSERT INTO categories(name) VALUES($1) ON CONFLICT DO NOTHING;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample('Sample category');
+ROLLBACK;
+
+Run 1
+Insert on categories  (cost=0.00..0.02 rows=0 width=0) (actual time=0.093..0.093 rows=0.00 loops=1)
+  Conflict Resolution: NOTHING
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=83
+  ->  Result  (cost=0.00..0.02 rows=1 width=242) (actual time=0.015..0.015 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=9
+Planning Time: 0.039 ms
+Execution Time: 0.101 ms
+
+Run 2
+Insert on categories  (cost=0.00..0.02 rows=0 width=0) (actual time=0.096..0.096 rows=0.00 loops=1)
+  Conflict Resolution: NOTHING
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=84
+  ->  Result  (cost=0.00..0.02 rows=1 width=242) (actual time=0.019..0.019 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=9
+Planning Time: 0.047 ms
+Execution Time: 0.105 ms
+
+Run 3
+Insert on categories  (cost=0.00..0.02 rows=0 width=0) (actual time=0.092..0.092 rows=0.00 loops=1)
+  Conflict Resolution: NOTHING
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=84
+  ->  Result  (cost=0.00..0.02 rows=1 width=242) (actual time=0.015..0.015 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=9
+Planning Time: 0.038 ms
+Execution Time: 0.100 ms

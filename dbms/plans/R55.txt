@@ -1,0 +1,47 @@
+R55 · Warehouse product count
+
+BEGIN;
+
+PREPARE sample AS
+SELECT count(*)::int AS total FROM products WHERE store_id IS NULL AND NOT archived;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample;
+ROLLBACK;
+
+Run 1
+Aggregate  (cost=24.94..24.95 rows=1 width=4) (actual time=0.052..0.053 rows=1.00 loops=1)
+  Buffers: shared hit=10
+  ->  Index Only Scan using market_products on products  (cost=0.28..23.98 rows=385 width=0) (actual time=0.024..0.042 rows=385.00 loops=1)
+        Index Cond: ((store_id IS NULL) AND (archived = false))
+        Heap Fetches: 25
+        Index Searches: 1
+        Buffers: shared hit=10
+Planning:
+  Buffers: shared hit=109
+Planning Time: 0.162 ms
+Execution Time: 0.068 ms
+
+Run 2
+Aggregate  (cost=24.94..24.95 rows=1 width=4) (actual time=0.050..0.050 rows=1.00 loops=1)
+  Buffers: shared hit=8
+  ->  Index Only Scan using market_products on products  (cost=0.28..23.98 rows=385 width=0) (actual time=0.022..0.038 rows=385.00 loops=1)
+        Index Cond: ((store_id IS NULL) AND (archived = false))
+        Heap Fetches: 19
+        Index Searches: 1
+        Buffers: shared hit=8
+Planning:
+  Buffers: shared hit=109
+Planning Time: 0.179 ms
+Execution Time: 0.066 ms
+
+Run 3
+Aggregate  (cost=24.94..24.95 rows=1 width=4) (actual time=0.045..0.045 rows=1.00 loops=1)
+  Buffers: shared hit=8
+  ->  Index Only Scan using market_products on products  (cost=0.28..23.98 rows=385 width=0) (actual time=0.019..0.034 rows=385.00 loops=1)
+        Index Cond: ((store_id IS NULL) AND (archived = false))
+        Heap Fetches: 19
+        Index Searches: 1
+        Buffers: shared hit=8
+Planning:
+  Buffers: shared hit=109
+Planning Time: 0.158 ms
+Execution Time: 0.059 ms

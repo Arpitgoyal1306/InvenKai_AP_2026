@@ -1,0 +1,75 @@
+R50 · Lock checkout products and inventory
+
+BEGIN;
+
+PREPARE sample AS
+SELECT
+         p.id,
+         p.name,
+         p.sku,
+         p.price,
+         i.quantity AS available_quantity
+       FROM products p
+       INNER JOIN inventory i ON i.product_id = p.id
+       WHERE p.id = ANY($1::bigint[]) AND p.store_id IS NOT DISTINCT FROM $2::bigint AND NOT p.archived
+       ORDER BY p.id
+       FOR UPDATE OF p, i;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(ARRAY[1,33],1);
+ROLLBACK;
+
+Run 1
+LockRows  (cost=0.56..20.91 rows=1 width=49) (actual time=0.015..0.017 rows=2.00 loops=1)
+  Buffers: shared hit=13
+  ->  Nested Loop  (cost=0.56..20.90 rows=1 width=49) (actual time=0.006..0.008 rows=2.00 loops=1)
+        Buffers: shared hit=9
+        ->  Index Scan using products_pkey on products p  (cost=0.28..12.60 rows=1 width=39) (actual time=0.004..0.005 rows=2.00 loops=1)
+              Index Cond: (id = ANY ('{1,33}'::bigint[]))
+              Filter: ((NOT archived) AND (NOT (store_id IS DISTINCT FROM '1'::bigint)))
+              Index Searches: 1
+              Buffers: shared hit=3
+        ->  Index Scan using inventory_product_id_key on inventory i  (cost=0.28..8.29 rows=1 width=18) (actual time=0.001..0.001 rows=1.00 loops=2)
+              Index Cond: (product_id = p.id)
+              Index Searches: 2
+              Buffers: shared hit=6
+Planning:
+  Buffers: shared hit=227
+Planning Time: 0.473 ms
+Execution Time: 0.032 ms
+
+Run 2
+LockRows  (cost=0.56..20.91 rows=1 width=49) (actual time=0.022..0.026 rows=2.00 loops=1)
+  Buffers: shared hit=13
+  ->  Nested Loop  (cost=0.56..20.90 rows=1 width=49) (actual time=0.005..0.007 rows=2.00 loops=1)
+        Buffers: shared hit=9
+        ->  Index Scan using products_pkey on products p  (cost=0.28..12.60 rows=1 width=39) (actual time=0.004..0.004 rows=2.00 loops=1)
+              Index Cond: (id = ANY ('{1,33}'::bigint[]))
+              Filter: ((NOT archived) AND (NOT (store_id IS DISTINCT FROM '1'::bigint)))
+              Index Searches: 1
+              Buffers: shared hit=3
+        ->  Index Scan using inventory_product_id_key on inventory i  (cost=0.28..8.29 rows=1 width=18) (actual time=0.001..0.001 rows=1.00 loops=2)
+              Index Cond: (product_id = p.id)
+              Index Searches: 2
+              Buffers: shared hit=6
+Planning:
+  Buffers: shared hit=227
+Planning Time: 0.373 ms
+Execution Time: 0.038 ms
+
+Run 3
+LockRows  (cost=0.56..20.91 rows=1 width=49) (actual time=0.011..0.015 rows=2.00 loops=1)
+  Buffers: shared hit=13
+  ->  Nested Loop  (cost=0.56..20.90 rows=1 width=49) (actual time=0.004..0.005 rows=2.00 loops=1)
+        Buffers: shared hit=9
+        ->  Index Scan using products_pkey on products p  (cost=0.28..12.60 rows=1 width=39) (actual time=0.003..0.003 rows=2.00 loops=1)
+              Index Cond: (id = ANY ('{1,33}'::bigint[]))
+              Filter: ((NOT archived) AND (NOT (store_id IS DISTINCT FROM '1'::bigint)))
+              Index Searches: 1
+              Buffers: shared hit=3
+        ->  Index Scan using inventory_product_id_key on inventory i  (cost=0.28..8.29 rows=1 width=18) (actual time=0.001..0.001 rows=1.00 loops=2)
+              Index Cond: (product_id = p.id)
+              Index Searches: 2
+              Buffers: shared hit=6
+Planning:
+  Buffers: shared hit=227
+Planning Time: 0.365 ms
+Execution Time: 0.026 ms

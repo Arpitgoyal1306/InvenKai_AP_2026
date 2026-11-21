@@ -1,0 +1,40 @@
+R43 · Verify buyer exists
+
+BEGIN;
+
+PREPARE sample AS
+SELECT id
+     FROM users
+     WHERE id = $1;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(33);
+ROLLBACK;
+
+Run 1
+Seq Scan on users  (cost=0.00..7.20 rows=1 width=8) (actual time=0.004..0.013 rows=1.00 loops=1)
+  Filter: (id = '33'::bigint)
+  Rows Removed by Filter: 255
+  Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=100
+Planning Time: 0.220 ms
+Execution Time: 0.020 ms
+
+Run 2
+Seq Scan on users  (cost=0.00..7.20 rows=1 width=8) (actual time=0.004..0.010 rows=1.00 loops=1)
+  Filter: (id = '33'::bigint)
+  Rows Removed by Filter: 255
+  Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=100
+Planning Time: 0.166 ms
+Execution Time: 0.015 ms
+
+Run 3
+Seq Scan on users  (cost=0.00..7.20 rows=1 width=8) (actual time=0.003..0.010 rows=1.00 loops=1)
+  Filter: (id = '33'::bigint)
+  Rows Removed by Filter: 255
+  Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=100
+Planning Time: 0.161 ms
+Execution Time: 0.015 ms

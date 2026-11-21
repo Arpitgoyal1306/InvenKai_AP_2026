@@ -1,0 +1,38 @@
+R35 · Check profile-edit credential
+
+BEGIN;
+
+PREPARE sample AS
+SELECT email, password_hash FROM users WHERE id=$1;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(33);
+ROLLBACK;
+
+Run 1
+Seq Scan on users  (cost=0.00..7.20 rows=1 width=28) (actual time=0.004..0.010 rows=1.00 loops=1)
+  Filter: (id = '33'::bigint)
+  Rows Removed by Filter: 255
+  Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=106
+Planning Time: 0.183 ms
+Execution Time: 0.017 ms
+
+Run 2
+Seq Scan on users  (cost=0.00..7.20 rows=1 width=28) (actual time=0.004..0.010 rows=1.00 loops=1)
+  Filter: (id = '33'::bigint)
+  Rows Removed by Filter: 255
+  Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=106
+Planning Time: 0.183 ms
+Execution Time: 0.015 ms
+
+Run 3
+Seq Scan on users  (cost=0.00..7.20 rows=1 width=28) (actual time=0.003..0.009 rows=1.00 loops=1)
+  Filter: (id = '33'::bigint)
+  Rows Removed by Filter: 255
+  Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=106
+Planning Time: 0.155 ms
+Execution Time: 0.014 ms

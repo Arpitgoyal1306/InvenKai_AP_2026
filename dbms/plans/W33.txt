@@ -1,0 +1,44 @@
+W33 · Record retry identity
+
+BEGIN;
+
+PREPARE sample AS
+UPDATE orders SET checkout_key=$2,checkout_fingerprint=$3 WHERE id=$1;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1,'updated-key','updated-fingerprint');
+ROLLBACK;
+
+Run 1
+Update on orders  (cost=0.27..8.29 rows=0 width=0) (actual time=0.091..0.091 rows=0.00 loops=1)
+  Buffers: shared hit=47
+  ->  Index Scan using orders_pkey on orders  (cost=0.27..8.29 rows=1 width=312) (actual time=0.009..0.010 rows=1.00 loops=1)
+        Index Cond: (id = '1'::bigint)
+        Index Searches: 1
+        Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=130
+Planning Time: 0.207 ms
+Execution Time: 0.124 ms
+
+Run 2
+Update on orders  (cost=0.27..8.29 rows=0 width=0) (actual time=0.134..0.134 rows=0.00 loops=1)
+  Buffers: shared hit=48
+  ->  Index Scan using orders_pkey on orders  (cost=0.27..8.29 rows=1 width=312) (actual time=0.011..0.013 rows=1.00 loops=1)
+        Index Cond: (id = '1'::bigint)
+        Index Searches: 1
+        Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=130
+Planning Time: 0.227 ms
+Execution Time: 0.168 ms
+
+Run 3
+Update on orders  (cost=0.27..8.29 rows=0 width=0) (actual time=0.089..0.089 rows=0.00 loops=1)
+  Buffers: shared hit=48
+  ->  Index Scan using orders_pkey on orders  (cost=0.27..8.29 rows=1 width=312) (actual time=0.009..0.010 rows=1.00 loops=1)
+        Index Cond: (id = '1'::bigint)
+        Index Searches: 1
+        Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=130
+Planning Time: 0.200 ms
+Execution Time: 0.120 ms

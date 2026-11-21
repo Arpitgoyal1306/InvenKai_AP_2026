@@ -1,0 +1,102 @@
+R41 · Warehouse inventory page
+
+BEGIN;
+
+PREPARE sample AS
+SELECT p.id,p.name,p.sku,p.category_id,c.name AS category,p.price,
+      i.quantity,p.low_stock_threshold
+      FROM products p JOIN inventory i ON i.product_id=p.id
+      JOIN categories c ON c.id=p.category_id
+      WHERE p.store_id IS NULL AND NOT p.archived ORDER BY p.id LIMIT $1 OFFSET $2;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(20,0);
+ROLLBACK;
+
+Run 1
+Limit  (cost=0.70..11.22 rows=20 width=60) (actual time=0.014..0.036 rows=20.00 loops=1)
+  Buffers: shared hit=43
+  ->  Nested Loop  (cost=0.70..203.30 rows=385 width=60) (actual time=0.013..0.034 rows=20.00 loops=1)
+        Buffers: shared hit=43
+        ->  Merge Join  (cost=0.56..190.93 rows=385 width=49) (actual time=0.007..0.020 rows=20.00 loops=1)
+              Merge Cond: (p.id = i.product_id)
+              Buffers: shared hit=11
+              ->  Index Scan using products_pkey on products p  (cost=0.28..97.00 rows=385 width=45) (actual time=0.003..0.010 rows=20.00 loops=1)
+                    Filter: ((store_id IS NULL) AND (NOT archived))
+                    Rows Removed by Filter: 85
+                    Index Searches: 1
+                    Buffers: shared hit=4
+              ->  Index Scan using inventory_product_id_key on inventory i  (cost=0.28..84.00 rows=2048 width=12) (actual time=0.002..0.006 rows=105.00 loops=1)
+                    Index Searches: 1
+                    Buffers: shared hit=7
+        ->  Memoize  (cost=0.15..0.19 rows=1 width=19) (actual time=0.001..0.001 rows=1.00 loops=20)
+              Cache Key: p.category_id
+              Cache Mode: logical
+              Hits: 4  Misses: 16  Evictions: 0  Overflows: 0  Memory Usage: 2kB
+              Buffers: shared hit=32
+              ->  Index Scan using categories_pkey on categories c  (cost=0.14..0.18 rows=1 width=19) (actual time=0.000..0.000 rows=1.00 loops=16)
+                    Index Cond: (id = p.category_id)
+                    Index Searches: 16
+                    Buffers: shared hit=32
+Planning:
+  Buffers: shared hit=274
+Planning Time: 0.505 ms
+Execution Time: 0.058 ms
+
+Run 2
+Limit  (cost=0.70..11.22 rows=20 width=60) (actual time=0.014..0.036 rows=20.00 loops=1)
+  Buffers: shared hit=39
+  ->  Nested Loop  (cost=0.70..203.30 rows=385 width=60) (actual time=0.014..0.035 rows=20.00 loops=1)
+        Buffers: shared hit=39
+        ->  Merge Join  (cost=0.56..190.93 rows=385 width=49) (actual time=0.007..0.021 rows=20.00 loops=1)
+              Merge Cond: (p.id = i.product_id)
+              Buffers: shared hit=7
+              ->  Index Scan using products_pkey on products p  (cost=0.28..97.00 rows=385 width=45) (actual time=0.004..0.010 rows=20.00 loops=1)
+                    Filter: ((store_id IS NULL) AND (NOT archived))
+                    Rows Removed by Filter: 85
+                    Index Searches: 1
+                    Buffers: shared hit=4
+              ->  Index Scan using inventory_product_id_key on inventory i  (cost=0.28..84.00 rows=2048 width=12) (actual time=0.002..0.005 rows=105.00 loops=1)
+                    Index Searches: 1
+                    Buffers: shared hit=3
+        ->  Memoize  (cost=0.15..0.19 rows=1 width=19) (actual time=0.001..0.001 rows=1.00 loops=20)
+              Cache Key: p.category_id
+              Cache Mode: logical
+              Hits: 4  Misses: 16  Evictions: 0  Overflows: 0  Memory Usage: 2kB
+              Buffers: shared hit=32
+              ->  Index Scan using categories_pkey on categories c  (cost=0.14..0.18 rows=1 width=19) (actual time=0.000..0.000 rows=1.00 loops=16)
+                    Index Cond: (id = p.category_id)
+                    Index Searches: 16
+                    Buffers: shared hit=32
+Planning:
+  Buffers: shared hit=274
+Planning Time: 0.489 ms
+Execution Time: 0.061 ms
+
+Run 3
+Limit  (cost=0.70..11.22 rows=20 width=60) (actual time=0.012..0.034 rows=20.00 loops=1)
+  Buffers: shared hit=39
+  ->  Nested Loop  (cost=0.70..203.30 rows=385 width=60) (actual time=0.012..0.033 rows=20.00 loops=1)
+        Buffers: shared hit=39
+        ->  Merge Join  (cost=0.56..190.93 rows=385 width=49) (actual time=0.006..0.020 rows=20.00 loops=1)
+              Merge Cond: (p.id = i.product_id)
+              Buffers: shared hit=7
+              ->  Index Scan using products_pkey on products p  (cost=0.28..97.00 rows=385 width=45) (actual time=0.003..0.009 rows=20.00 loops=1)
+                    Filter: ((store_id IS NULL) AND (NOT archived))
+                    Rows Removed by Filter: 85
+                    Index Searches: 1
+                    Buffers: shared hit=4
+              ->  Index Scan using inventory_product_id_key on inventory i  (cost=0.28..84.00 rows=2048 width=12) (actual time=0.002..0.005 rows=105.00 loops=1)
+                    Index Searches: 1
+                    Buffers: shared hit=3
+        ->  Memoize  (cost=0.15..0.19 rows=1 width=19) (actual time=0.001..0.001 rows=1.00 loops=20)
+              Cache Key: p.category_id
+              Cache Mode: logical
+              Hits: 4  Misses: 16  Evictions: 0  Overflows: 0  Memory Usage: 2kB
+              Buffers: shared hit=32
+              ->  Index Scan using categories_pkey on categories c  (cost=0.14..0.18 rows=1 width=19) (actual time=0.000..0.000 rows=1.00 loops=16)
+                    Index Cond: (id = p.category_id)
+                    Index Searches: 16
+                    Buffers: shared hit=32
+Planning:
+  Buffers: shared hit=274
+Planning Time: 0.450 ms
+Execution Time: 0.057 ms

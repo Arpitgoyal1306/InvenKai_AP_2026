@@ -1,0 +1,47 @@
+W22 · Link verified Google account
+
+BEGIN;
+
+PREPARE sample AS
+UPDATE users SET google_subject=$2, avatar_url=COALESCE($3,avatar_url),
+          password_hash=NULL, updated_at=NOW()
+       WHERE email=$1 AND role='customer' AND google_subject IS NULL
+       RETURNING id,name,email,role,avatar_url;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample('user33@example.test','new-subject',NULL);
+ROLLBACK;
+
+Run 1
+Update on users  (cost=0.00..7.84 rows=1 width=594) (actual time=0.067..0.077 rows=1.00 loops=1)
+  Buffers: shared hit=24
+  ->  Seq Scan on users  (cost=0.00..7.84 rows=1 width=594) (actual time=0.008..0.017 rows=1.00 loops=1)
+        Filter: ((google_subject IS NULL) AND ((email)::text = 'user33@example.test'::text) AND ((role)::text = 'customer'::text))
+        Rows Removed by Filter: 255
+        Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=102
+Planning Time: 0.184 ms
+Execution Time: 0.109 ms
+
+Run 2
+Update on users  (cost=0.00..7.84 rows=1 width=594) (actual time=0.075..0.085 rows=1.00 loops=1)
+  Buffers: shared hit=27
+  ->  Seq Scan on users  (cost=0.00..7.84 rows=1 width=594) (actual time=0.014..0.024 rows=1.00 loops=1)
+        Filter: ((google_subject IS NULL) AND ((email)::text = 'user33@example.test'::text) AND ((role)::text = 'customer'::text))
+        Rows Removed by Filter: 255
+        Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=102
+Planning Time: 0.173 ms
+Execution Time: 0.124 ms
+
+Run 3
+Update on users  (cost=0.00..7.84 rows=1 width=594) (actual time=0.062..0.073 rows=1.00 loops=1)
+  Buffers: shared hit=27
+  ->  Seq Scan on users  (cost=0.00..7.84 rows=1 width=594) (actual time=0.008..0.018 rows=1.00 loops=1)
+        Filter: ((google_subject IS NULL) AND ((email)::text = 'user33@example.test'::text) AND ((role)::text = 'customer'::text))
+        Rows Removed by Filter: 255
+        Buffers: shared hit=4
+Planning:
+  Buffers: shared hit=102
+Planning Time: 0.177 ms
+Execution Time: 0.103 ms

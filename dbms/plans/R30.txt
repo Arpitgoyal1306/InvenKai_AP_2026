@@ -1,0 +1,38 @@
+R30 · Check receipt before retry
+
+BEGIN;
+
+PREPARE sample AS
+SELECT id, receipt_number FROM receipts WHERE order_id = $1;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(3);
+ROLLBACK;
+
+Run 1
+Index Scan using receipts_order_id_key on receipts  (cost=0.14..8.16 rows=1 width=15) (actual time=0.003..0.004 rows=1.00 loops=1)
+  Index Cond: (order_id = '3'::bigint)
+  Index Searches: 1
+  Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=106
+Planning Time: 0.192 ms
+Execution Time: 0.011 ms
+
+Run 2
+Index Scan using receipts_order_id_key on receipts  (cost=0.14..8.16 rows=1 width=15) (actual time=0.003..0.003 rows=1.00 loops=1)
+  Index Cond: (order_id = '3'::bigint)
+  Index Searches: 1
+  Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=106
+Planning Time: 0.174 ms
+Execution Time: 0.010 ms
+
+Run 3
+Index Scan using receipts_order_id_key on receipts  (cost=0.14..8.16 rows=1 width=15) (actual time=0.004..0.004 rows=1.00 loops=1)
+  Index Cond: (order_id = '3'::bigint)
+  Index Searches: 1
+  Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=106
+Planning Time: 0.190 ms
+Execution Time: 0.011 ms

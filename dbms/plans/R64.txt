@@ -1,0 +1,41 @@
+R64 · Active supplier count
+
+BEGIN;
+
+PREPARE sample AS
+SELECT count(*)::int AS total FROM suppliers WHERE is_active;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample;
+ROLLBACK;
+
+Run 1
+Aggregate  (cost=1.40..1.41 rows=1 width=4) (actual time=0.012..0.012 rows=1.00 loops=1)
+  Buffers: shared hit=1
+  ->  Seq Scan on suppliers  (cost=0.00..1.32 rows=32 width=0) (actual time=0.006..0.007 rows=32.00 loops=1)
+        Filter: is_active
+        Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=61
+Planning Time: 0.145 ms
+Execution Time: 0.031 ms
+
+Run 2
+Aggregate  (cost=1.40..1.41 rows=1 width=4) (actual time=0.010..0.010 rows=1.00 loops=1)
+  Buffers: shared hit=1
+  ->  Seq Scan on suppliers  (cost=0.00..1.32 rows=32 width=0) (actual time=0.004..0.006 rows=32.00 loops=1)
+        Filter: is_active
+        Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=61
+Planning Time: 0.125 ms
+Execution Time: 0.027 ms
+
+Run 3
+Aggregate  (cost=1.40..1.41 rows=1 width=4) (actual time=0.010..0.010 rows=1.00 loops=1)
+  Buffers: shared hit=1
+  ->  Seq Scan on suppliers  (cost=0.00..1.32 rows=32 width=0) (actual time=0.004..0.005 rows=32.00 loops=1)
+        Filter: is_active
+        Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=61
+Planning Time: 0.118 ms
+Execution Time: 0.027 ms

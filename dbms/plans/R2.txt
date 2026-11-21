@@ -1,0 +1,23 @@
+R2 · Database readiness
+
+BEGIN;
+
+PREPARE sample AS
+SELECT 1;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample;
+ROLLBACK;
+
+Run 1
+Result  (cost=0.00..0.01 rows=1 width=4) (actual time=0.000..0.000 rows=1.00 loops=1)
+Planning Time: 0.021 ms
+Execution Time: 0.013 ms
+
+Run 2
+Result  (cost=0.00..0.01 rows=1 width=4) (actual time=0.000..0.000 rows=1.00 loops=1)
+Planning Time: 0.021 ms
+Execution Time: 0.012 ms
+
+Run 3
+Result  (cost=0.00..0.01 rows=1 width=4) (actual time=0.000..0.001 rows=1.00 loops=1)
+Planning Time: 0.021 ms
+Execution Time: 0.012 ms

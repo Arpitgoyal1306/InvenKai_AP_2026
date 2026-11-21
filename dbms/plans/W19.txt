@@ -1,0 +1,40 @@
+W19 · Register password account
+
+BEGIN;
+
+PREPARE sample AS
+INSERT INTO users (name, email, password_hash)
+       VALUES ($1, $2, $3)
+       RETURNING id, name, email, role, created_at;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample('Buyer','new@example.test','fixture');
+ROLLBACK;
+
+Run 1
+Insert on users  (cost=0.00..0.02 rows=1 width=1502) (actual time=0.102..0.102 rows=1.00 loops=1)
+  Buffers: shared hit=81
+  ->  Result  (cost=0.00..0.02 rows=1 width=1502) (actual time=0.014..0.014 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.039 ms
+Execution Time: 0.113 ms
+
+Run 2
+Insert on users  (cost=0.00..0.02 rows=1 width=1502) (actual time=0.094..0.094 rows=1.00 loops=1)
+  Buffers: shared hit=82
+  ->  Result  (cost=0.00..0.02 rows=1 width=1502) (actual time=0.015..0.015 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.053 ms
+Execution Time: 0.106 ms
+
+Run 3
+Insert on users  (cost=0.00..0.02 rows=1 width=1502) (actual time=0.097..0.097 rows=1.00 loops=1)
+  Buffers: shared hit=82
+  ->  Result  (cost=0.00..0.02 rows=1 width=1502) (actual time=0.014..0.014 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.042 ms
+Execution Time: 0.108 ms

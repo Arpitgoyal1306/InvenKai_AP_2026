@@ -1,0 +1,38 @@
+R13 · Current owner's store
+
+BEGIN;
+
+PREPARE sample AS
+SELECT * FROM stores WHERE owner_id=$1;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1);
+ROLLBACK;
+
+Run 1
+Seq Scan on stores  (cost=0.00..1.40 rows=1 width=69) (actual time=0.003..0.004 rows=1.00 loops=1)
+  Filter: (owner_id = '1'::bigint)
+  Rows Removed by Filter: 31
+  Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=133
+Planning Time: 0.221 ms
+Execution Time: 0.011 ms
+
+Run 2
+Seq Scan on stores  (cost=0.00..1.40 rows=1 width=69) (actual time=0.002..0.003 rows=1.00 loops=1)
+  Filter: (owner_id = '1'::bigint)
+  Rows Removed by Filter: 31
+  Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=133
+Planning Time: 0.171 ms
+Execution Time: 0.009 ms
+
+Run 3
+Seq Scan on stores  (cost=0.00..1.40 rows=1 width=69) (actual time=0.002..0.003 rows=1.00 loops=1)
+  Filter: (owner_id = '1'::bigint)
+  Rows Removed by Filter: 31
+  Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=133
+Planning Time: 0.174 ms
+Execution Time: 0.009 ms

@@ -2,7 +2,7 @@ name: PostgreSQL Schema Check
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'codex/ap-checkpoints-*']
     paths: ['dbms/**', '.github/workflows/db-schema-check.yml']
   pull_request:
     branches: [main]
@@ -45,3 +45,37 @@ jobs:
 
       - name: Execute schema assertions
         run: psql -v ON_ERROR_STOP=1 -f dbms/04_assertions.sql
+
+      - name: Check out pinned InvenKai migrations
+        uses: actions/checkout@v4
+        with:
+          repository: Arpitgoyal1306/InvenKai
+          ref: 33b5bbe19cca4358d531cec96d00d42e8db119c2
+          path: upstream
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Apply application migrations to a second database
+        working-directory: upstream/server
+        env:
+          DATABASE_URL: postgresql://postgres:postgres_test_password@localhost:5432/invenkai_migrated
+        run: |
+          createdb invenkai_migrated
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run migrate -- up
+
+      - name: Compare both PostgreSQL 16 schemas
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        shell: bash
+        run: |
+          for database in invenkai_test invenkai_migrated; do
+            docker exec "$POSTGRES_CONTAINER" pg_dump -U postgres -d "$database" \
+              --schema-only --no-owner --no-privileges --schema=public \
+              --exclude-table=public.pgmigrations --exclude-table=public.pgmigrations_id_seq \
+              | sed -E '/^\\(un)?restrict /d' > "$RUNNER_TEMP/$database.sql"
+          done
+          diff -u "$RUNNER_TEMP/invenkai_migrated.sql" "$RUNNER_TEMP/invenkai_test.sql"

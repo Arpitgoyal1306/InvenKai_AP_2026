@@ -1,0 +1,67 @@
+R36 · Look up warehouse stock
+
+BEGIN;
+
+PREPARE sample AS
+SELECT product_id, quantity, created_at, updated_at
+       FROM inventory
+       WHERE product_id = $1 AND EXISTS (SELECT 1 FROM products WHERE id=$1 AND store_id IS NULL AND NOT archived);
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(5);
+ROLLBACK;
+
+Run 1
+Result  (cost=4.58..12.59 rows=1 width=28) (actual time=0.030..0.031 rows=1.00 loops=1)
+  One-Time Filter: (InitPlan 1).col1
+  Buffers: shared hit=7
+  InitPlan 1
+    ->  Index Only Scan using market_products on products  (cost=0.28..4.30 rows=1 width=0) (actual time=0.023..0.023 rows=1.00 loops=1)
+          Index Cond: ((store_id IS NULL) AND (archived = false) AND (id = '5'::bigint))
+          Heap Fetches: 1
+          Index Searches: 1
+          Buffers: shared hit=4
+  ->  Index Scan using inventory_product_id_key on inventory  (cost=4.58..12.59 rows=1 width=28) (actual time=0.007..0.007 rows=1.00 loops=1)
+        Index Cond: (product_id = '5'::bigint)
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=160
+Planning Time: 0.306 ms
+Execution Time: 0.043 ms
+
+Run 2
+Result  (cost=4.58..12.59 rows=1 width=28) (actual time=0.026..0.026 rows=1.00 loops=1)
+  One-Time Filter: (InitPlan 1).col1
+  Buffers: shared hit=7
+  InitPlan 1
+    ->  Index Only Scan using market_products on products  (cost=0.28..4.30 rows=1 width=0) (actual time=0.020..0.020 rows=1.00 loops=1)
+          Index Cond: ((store_id IS NULL) AND (archived = false) AND (id = '5'::bigint))
+          Heap Fetches: 1
+          Index Searches: 1
+          Buffers: shared hit=4
+  ->  Index Scan using inventory_product_id_key on inventory  (cost=4.58..12.59 rows=1 width=28) (actual time=0.005..0.005 rows=1.00 loops=1)
+        Index Cond: (product_id = '5'::bigint)
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=160
+Planning Time: 0.250 ms
+Execution Time: 0.037 ms
+
+Run 3
+Result  (cost=4.58..12.59 rows=1 width=28) (actual time=0.025..0.026 rows=1.00 loops=1)
+  One-Time Filter: (InitPlan 1).col1
+  Buffers: shared hit=7
+  InitPlan 1
+    ->  Index Only Scan using market_products on products  (cost=0.28..4.30 rows=1 width=0) (actual time=0.020..0.020 rows=1.00 loops=1)
+          Index Cond: ((store_id IS NULL) AND (archived = false) AND (id = '5'::bigint))
+          Heap Fetches: 1
+          Index Searches: 1
+          Buffers: shared hit=4
+  ->  Index Scan using inventory_product_id_key on inventory  (cost=4.58..12.59 rows=1 width=28) (actual time=0.005..0.005 rows=1.00 loops=1)
+        Index Cond: (product_id = '5'::bigint)
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=160
+Planning Time: 0.253 ms
+Execution Time: 0.037 ms

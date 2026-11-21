@@ -1,0 +1,55 @@
+W30 · Enqueue receipt event
+
+BEGIN;
+DELETE FROM order_outbox WHERE order_id=1;
+PREPARE sample AS
+INSERT INTO order_outbox (event_type, order_id, payload)
+       VALUES ($1, $2, $3::jsonb)
+       ON CONFLICT (event_type, order_id) DO NOTHING;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample('order.receipt.requested',1,'{"orderId":1}');
+ROLLBACK;
+
+Run 1
+Insert on order_outbox  (cost=0.00..0.02 rows=0 width=0) (actual time=0.073..0.073 rows=0.00 loops=1)
+  Conflict Resolution: NOTHING
+  Conflict Arbiter Indexes: order_outbox_unique_event_per_order
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=43
+  ->  Result  (cost=0.00..0.02 rows=1 width=376) (actual time=0.015..0.015 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=11
+Planning Time: 0.032 ms
+Trigger for constraint order_outbox_order_id_fkey: time=0.217 calls=1
+Execution Time: 0.293 ms
+
+Run 2
+Insert on order_outbox  (cost=0.00..0.02 rows=0 width=0) (actual time=0.071..0.071 rows=0.00 loops=1)
+  Conflict Resolution: NOTHING
+  Conflict Arbiter Indexes: order_outbox_unique_event_per_order
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=43
+  ->  Result  (cost=0.00..0.02 rows=1 width=376) (actual time=0.017..0.017 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=11
+Planning Time: 0.039 ms
+Trigger for constraint order_outbox_order_id_fkey: time=0.163 calls=1
+Execution Time: 0.238 ms
+
+Run 3
+Insert on order_outbox  (cost=0.00..0.02 rows=0 width=0) (actual time=0.060..0.060 rows=0.00 loops=1)
+  Conflict Resolution: NOTHING
+  Conflict Arbiter Indexes: order_outbox_unique_event_per_order
+  Tuples Inserted: 1
+  Conflicting Tuples: 0
+  Buffers: shared hit=43
+  ->  Result  (cost=0.00..0.02 rows=1 width=376) (actual time=0.013..0.013 rows=1.00 loops=1)
+        Buffers: shared hit=15
+Planning:
+  Buffers: shared hit=11
+Planning Time: 0.028 ms
+Trigger for constraint order_outbox_order_id_fkey: time=0.164 calls=1
+Execution Time: 0.228 ms

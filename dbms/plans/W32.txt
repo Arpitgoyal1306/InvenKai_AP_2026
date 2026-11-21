@@ -1,0 +1,44 @@
+W32 · Save checkout snapshots
+
+BEGIN;
+
+PREPARE sample AS
+UPDATE orders SET store_id=$2,pickup_snapshot=$3,buyer_details=$4 WHERE id=$1;
+EXPLAIN (ANALYZE, BUFFERS) EXECUTE sample(1,1,'Counter 1','{"name":"Fixture buyer"}');
+ROLLBACK;
+
+Run 1
+Update on orders  (cost=0.27..8.29 rows=0 width=0) (actual time=0.088..0.088 rows=0.00 loops=1)
+  Buffers: shared hit=48
+  ->  Index Scan using orders_pkey on orders  (cost=0.27..8.29 rows=1 width=78) (actual time=0.007..0.007 rows=1.00 loops=1)
+        Index Cond: (id = '1'::bigint)
+        Index Searches: 1
+        Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=131
+Planning Time: 0.213 ms
+Execution Time: 0.128 ms
+
+Run 2
+Update on orders  (cost=0.27..8.29 rows=0 width=0) (actual time=0.097..0.098 rows=0.00 loops=1)
+  Buffers: shared hit=52
+  ->  Index Scan using orders_pkey on orders  (cost=0.27..8.29 rows=1 width=78) (actual time=0.010..0.011 rows=1.00 loops=1)
+        Index Cond: (id = '1'::bigint)
+        Index Searches: 1
+        Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=131
+Planning Time: 0.226 ms
+Execution Time: 0.134 ms
+
+Run 3
+Update on orders  (cost=0.27..8.29 rows=0 width=0) (actual time=0.096..0.096 rows=0.00 loops=1)
+  Buffers: shared hit=52
+  ->  Index Scan using orders_pkey on orders  (cost=0.27..8.29 rows=1 width=78) (actual time=0.008..0.010 rows=1.00 loops=1)
+        Index Cond: (id = '1'::bigint)
+        Index Searches: 1
+        Buffers: shared hit=5
+Planning:
+  Buffers: shared hit=131
+Planning Time: 0.218 ms
+Execution Time: 0.144 ms
