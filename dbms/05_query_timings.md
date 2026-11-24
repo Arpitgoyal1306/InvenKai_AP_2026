@@ -9,7 +9,7 @@ All 111 query shapes in CP3 ran three times (66 reads, 45 writes). Each query ID
 - Three consecutive runs per query, each in a fresh connection and a rolled-back transaction. Runs shared the server’s PostgreSQL buffers and OS cache. Cache contents could carry over between repetitions. Setup statements and planning time are excluded. Each mean is the arithmetic mean of the three server execution times, rounded to 0.001 ms.
 - Measurements describe individual SQL statements on this fixture. End-to-end HTTP latency, Redis traffic, and concurrent checkout waits require separate measurements.
 
-| Query | Type | Operation | Run 1 ms | Run 2 ms | Run 3 ms | Mean ms | Scan nodes |
+| Query | Type | Operation | Run 1 ms | Run 2 ms | Run 3 ms | Average (ms) | Scan nodes |
 |---|---|---|---:|---:|---:|---:|---|
 | [R1](plans/R1.txt) | READ | Startup clock probe | 0.016 | 0.016 | 0.014 | 0.015 | — |
 | [R2](plans/R2.txt) | READ | Database readiness | 0.013 | 0.012 | 0.012 | 0.012 | — |
